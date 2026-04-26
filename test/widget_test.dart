@@ -2,6 +2,7 @@ import "package:classroom_ungraded_checker/app.dart";
 import "package:classroom_ungraded_checker/services/classroom_api_service.dart";
 import "package:classroom_ungraded_checker/services/csv_export_service.dart";
 import "package:classroom_ungraded_checker/services/google_auth_service.dart";
+import "package:classroom_ungraded_checker/services/report_controller.dart";
 import "package:classroom_ungraded_checker/services/report_service.dart";
 import "package:classroom_ungraded_checker/services/settings_service.dart";
 import "package:flutter/material.dart";
@@ -15,13 +16,7 @@ void main() {
     await tester.pumpWidget(
       ClassroomUngradedCheckerApp(
         navigatorKey: GlobalKey<NavigatorState>(),
-        services: AppServices(
-          googleAuth: GoogleAuthService(),
-          classroomApi: ClassroomApiService(),
-          report: const ReportService(),
-          csvExport: CsvExportService(),
-          settings: SettingsService(),
-        ),
+        services: _testServices(),
       ),
     );
 
@@ -36,4 +31,25 @@ void main() {
     );
     expect(find.text("No ungraded Classroom work to show."), findsOneWidget);
   });
+}
+
+AppServices _testServices() {
+  final googleAuth = GoogleAuthService();
+  final classroomApi = ClassroomApiService(googleAuth);
+  const report = ReportService();
+  final csvExport = CsvExportService();
+
+  return AppServices(
+    googleAuth: googleAuth,
+    classroomApi: classroomApi,
+    report: report,
+    reportController: ReportController(
+      googleAuth: googleAuth,
+      classroomApi: classroomApi,
+      report: report,
+      csvExport: csvExport,
+    ),
+    csvExport: csvExport,
+    settings: SettingsService(),
+  );
 }

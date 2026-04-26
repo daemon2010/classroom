@@ -23,7 +23,7 @@ class DiagnosticsScreen extends StatelessWidget {
           _DiagnosticTile(
             icon: Icons.school_outlined,
             label: "Classroom access",
-            value: "Read stubs only",
+            value: "Profile, classes, topics, and assignments enabled",
           ),
           _DiagnosticTile(
             icon: Icons.filter_alt_outlined,

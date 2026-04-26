@@ -3,11 +3,13 @@ class ClassroomProfile {
     required this.id,
     required this.emailAddress,
     required this.fullName,
+    this.photoUrl,
   });
 
   final String id;
   final String emailAddress;
   final String fullName;
+  final String? photoUrl;
 }
 
 class ClassroomCourse {
@@ -16,12 +18,90 @@ class ClassroomCourse {
     required this.name,
     this.section,
     this.subject,
+    this.descriptionHeading,
+    this.courseState,
+    this.alternateLink,
   });
 
   final String id;
   final String name;
   final String? section;
   final String? subject;
+  final String? descriptionHeading;
+  final String? courseState;
+  final String? alternateLink;
+}
+
+class ClassroomTopic {
+  const ClassroomTopic({required this.id, required this.name, this.updateTime});
+
+  final String id;
+  final String name;
+  final DateTime? updateTime;
+}
+
+class ClassroomAssignment {
+  const ClassroomAssignment({
+    required this.id,
+    required this.courseId,
+    required this.title,
+    required this.subjectName,
+    required this.creatorUserId,
+    required this.workType,
+    this.description,
+    this.state,
+    this.alternateLink,
+    this.creationTime,
+    this.updateTime,
+    this.dueDate,
+    this.dueTime,
+    this.topicId,
+    this.maxPoints,
+  });
+
+  final String id;
+  final String courseId;
+  final String title;
+  final String? description;
+  final String? state;
+  final String? alternateLink;
+  final DateTime? creationTime;
+  final DateTime? updateTime;
+  final DateTime? dueDate;
+  final Duration? dueTime;
+  final String? topicId;
+  final String subjectName;
+  final String creatorUserId;
+  final String workType;
+  final double? maxPoints;
+
+  DateTime? get dueAt {
+    final date = dueDate;
+    if (date == null) {
+      return null;
+    }
+
+    final time = dueTime;
+    if (time == null) {
+      return date;
+    }
+
+    return date.add(time);
+  }
+
+  ClassroomCourseWork toCourseWork() {
+    return ClassroomCourseWork(
+      id: id,
+      courseId: courseId,
+      title: title,
+      creatorUserId: creatorUserId,
+      dueDate: dueAt,
+      subjectName: subjectName,
+      alternateLink: alternateLink,
+      createdAt: creationTime,
+      maxPoints: maxPoints,
+    );
+  }
 }
 
 class ClassroomCourseWork {
@@ -31,6 +111,10 @@ class ClassroomCourseWork {
     required this.title,
     required this.creatorUserId,
     this.dueDate,
+    this.subjectName,
+    this.alternateLink,
+    this.createdAt,
+    this.maxPoints,
   });
 
   final String id;
@@ -38,6 +122,10 @@ class ClassroomCourseWork {
   final String title;
   final String creatorUserId;
   final DateTime? dueDate;
+  final String? subjectName;
+  final String? alternateLink;
+  final DateTime? createdAt;
+  final double? maxPoints;
 }
 
 class ClassroomSubmission {
@@ -94,9 +182,12 @@ class UngradedSubmissionReportRow {
     required this.submissionId,
     required this.submissionState,
     this.studentEmail,
+    this.classSection,
     this.subject,
     this.dueDate,
     this.updatedAt,
+    this.createdAt,
+    this.maxPoints,
     this.submissionUrl,
     this.assignmentUrl,
   });
@@ -110,9 +201,12 @@ class UngradedSubmissionReportRow {
   final String submissionId;
   final SubmissionState submissionState;
   final String? studentEmail;
+  final String? classSection;
   final String? subject;
   final DateTime? dueDate;
   final DateTime? updatedAt;
+  final DateTime? createdAt;
+  final double? maxPoints;
   final String? submissionUrl;
   final String? assignmentUrl;
 
@@ -125,6 +219,8 @@ class UngradedSubmissionReportRow {
     return updated.isAfter(due);
   }
 }
+
+typedef UngradedReportRow = UngradedSubmissionReportRow;
 
 class ReportSummary {
   const ReportSummary({

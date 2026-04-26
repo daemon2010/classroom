@@ -64,13 +64,13 @@ class StatusPanel extends StatelessWidget {
 
     if (cleanName != null && cleanName.isNotEmpty) {
       if (cleanEmail != null && cleanEmail.isNotEmpty) {
-        return "Signed in as $cleanName <$cleanEmail>";
+        return "Signed in as: $cleanName <$cleanEmail>";
       }
-      return "Signed in as $cleanName";
+      return "Signed in as: $cleanName";
     }
 
     if (cleanEmail != null && cleanEmail.isNotEmpty) {
-      return "Signed in as $cleanEmail";
+      return "Signed in as: $cleanEmail";
     }
 
     return "Signed in";

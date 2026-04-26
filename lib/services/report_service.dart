@@ -41,10 +41,14 @@ class ReportService {
             submissionId: submission.id,
             submissionState: submission.state,
             studentEmail: submission.studentEmail,
-            subject: course?.subject ?? course?.section,
+            classSection: course?.section,
+            subject: work.subjectName ?? course?.subject ?? course?.section,
             dueDate: work.dueDate,
             updatedAt: submission.updateTime,
+            createdAt: work.createdAt,
+            maxPoints: work.maxPoints,
             submissionUrl: submission.submissionUrl,
+            assignmentUrl: work.alternateLink,
           );
         })
         .toList(growable: false);

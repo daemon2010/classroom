@@ -2,7 +2,7 @@ import "package:flutter/material.dart";
 
 import "../app.dart";
 import "../models/classroom_models.dart";
-import "../services/google_auth_service.dart";
+import "../services/report_controller.dart";
 import "../widgets/course_filter.dart";
 import "../widgets/report_table.dart";
 import "../widgets/status_panel.dart";
@@ -18,27 +18,43 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  GoogleAuthStatus _authStatus = const GoogleAuthStatus.signedOut();
-  ReportSnapshot _snapshot = ReportSnapshot.empty();
-  List<ClassroomCourse> _courses = const [];
+  late ReportController _controller;
   String? _selectedCourseId;
   String _searchQuery = "";
   bool _onlyTurnedIn = true;
-  bool _loading = false;
-  bool _hasLoadedRows = false;
-  DateTime? _lastChecked;
 
   @override
   void initState() {
     super.initState();
-    _loadStatus();
+    _controller = widget.services.reportController;
+    _controller.addListener(_handleControllerChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant HomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.services.reportController ==
+        widget.services.reportController) {
+      return;
+    }
+
+    _controller.removeListener(_handleControllerChanged);
+    _controller = widget.services.reportController;
+    _controller.addListener(_handleControllerChanged);
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_handleControllerChanged);
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final filteredRows = _filteredRows();
+    final filteredRows = _filteredRows(_controller.snapshot.rows);
     final filteredSummary = _summaryFor(filteredRows);
-    final isSignedIn = _authStatus.state == GoogleAuthState.signedIn;
+    final isSignedIn = _controller.isSignedIn;
+    final lastError = _controller.lastError;
 
     return Scaffold(
       body: Padding(
@@ -49,19 +65,23 @@ class _HomeScreenState extends State<HomeScreen> {
             _Header(onSettings: _openSettings),
             const SizedBox(height: 14),
             StatusPanel(
-              authStatus: _authStatus,
-              lastChecked: _lastChecked,
+              authStatus: _controller.authStatus,
+              lastChecked: _controller.lastChecked,
               ungradedCount: filteredRows.length,
             ),
             if (!isSignedIn) ...[
               const SizedBox(height: 10),
               const _ConnectHint(),
             ],
+            if (lastError != null && lastError.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              _ErrorHint(message: lastError),
+            ],
             const SizedBox(height: 12),
             _ActionBar(
               isSignedIn: isSignedIn,
-              isLoading: _loading,
-              canExport: _hasLoadedRows,
+              isLoading: _controller.isRefreshing,
+              canExport: filteredRows.isNotEmpty && !_controller.isRefreshing,
               onSignIn: _connect,
               onCheckNow: _refreshReport,
               onExportCsv: _exportCsv,
@@ -69,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 12),
             CourseFilter(
-              courses: _courses,
+              courses: _controller.courses,
               selectedCourseId: _selectedCourseId,
               onlyTurnedIn: _onlyTurnedIn,
               searchQuery: _searchQuery,
@@ -99,100 +119,40 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> _loadStatus() async {
-    final status = await widget.services.googleAuth.currentStatus();
+  void _handleControllerChanged() {
     if (!mounted) {
       return;
     }
 
     setState(() {
-      _authStatus = status;
+      _selectedCourseId = _validCourseSelection(_controller.courses);
     });
   }
 
   Future<void> _connect() async {
-    try {
-      await widget.services.googleAuth.signIn();
-    } on GoogleAuthException catch (error) {
-      if (!mounted) {
-        return;
-      }
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+    final connected = await _controller.signIn();
+    if (!mounted || connected) {
       return;
     }
 
-    await _refreshReport();
+    _showMessage(_controller.lastError ?? "Google sign-in could not finish.");
   }
 
   Future<void> _refreshReport() async {
-    setState(() {
-      _loading = true;
-    });
-
-    final authStatus = await widget.services.googleAuth.currentStatus();
-    final isSignedIn = authStatus.state == GoogleAuthState.signedIn;
-
-    if (!isSignedIn) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _authStatus = authStatus;
-        _courses = const [];
-        _snapshot = ReportSnapshot.empty();
-        _hasLoadedRows = false;
-        _loading = false;
-      });
+    final refreshed = await _controller.refreshReport();
+    if (!mounted || refreshed) {
       return;
     }
 
-    final myProfile = await widget.services.classroomApi.getMyProfile();
-    final courses = await widget.services.classroomApi.listCourses();
-    final courseWork = <ClassroomCourseWork>[];
-    final submissions = <ClassroomSubmission>[];
-
-    for (final course in courses) {
-      final workItems = await widget.services.classroomApi.listCourseWork(
-        course.id,
-      );
-      courseWork.addAll(workItems);
-
-      for (final work in workItems) {
-        final workSubmissions = await widget.services.classroomApi
-            .listStudentSubmissions(courseId: course.id, courseWorkId: work.id);
-        submissions.addAll(workSubmissions);
-      }
-    }
-
-    final snapshot = widget.services.report.buildSnapshot(
-      myProfile: myProfile,
-      courses: courses,
-      courseWork: courseWork,
-      submissions: submissions,
-    );
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _authStatus = authStatus;
-      _courses = courses;
-      _snapshot = snapshot;
-      _lastChecked = DateTime.now();
-      _hasLoadedRows = true;
-      _loading = false;
-    });
+    _showMessage(_controller.lastError ?? "Classroom check could not finish.");
   }
 
-  List<UngradedSubmissionReportRow> _filteredRows() {
+  List<UngradedSubmissionReportRow> _filteredRows(
+    List<UngradedSubmissionReportRow> rows,
+  ) {
     final query = _searchQuery.trim().toLowerCase();
 
-    return _snapshot.rows
+    return rows
         .where((row) {
           if (_selectedCourseId != null && row.courseId != _selectedCourseId) {
             return false;
@@ -222,7 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   ReportSummary _summaryFor(List<UngradedSubmissionReportRow> rows) {
     return ReportSummary(
-      courseCount: _courses.length,
+      courseCount: _controller.courses.length,
       assignmentCount: rows.map((row) => row.courseWorkId).toSet().length,
       ungradedSubmissionCount: rows.length,
       classesWithUngradedCount: rows.map((row) => row.courseId).toSet().length,
@@ -230,15 +190,45 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _exportCsv() {
-    widget.services.csvExport.buildCsv(_filteredRows());
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("CSV export is not available yet.")),
+  String? _validCourseSelection(List<ClassroomCourse> courses) {
+    final selectedCourseId = _selectedCourseId;
+    if (selectedCourseId == null) {
+      return null;
+    }
+
+    return courses.any((course) => course.id == selectedCourseId)
+        ? selectedCourseId
+        : null;
+  }
+
+  Future<void> _exportCsv() async {
+    final exportedPath = await _controller.exportCsv(
+      rows: _filteredRows(_controller.snapshot.rows),
+      refreshIfNeeded: false,
     );
+    if (!mounted) {
+      return;
+    }
+
+    if (exportedPath == null) {
+      final error = _controller.lastError;
+      if (error != null && error.isNotEmpty) {
+        _showMessage(error);
+      }
+      return;
+    }
+
+    _showMessage("CSV exported successfully.");
   }
 
   void _openSettings() {
     Navigator.of(context).pushNamed("/settings");
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -281,6 +271,39 @@ class _ConnectHint extends StatelessWidget {
         padding: EdgeInsets.all(12),
         child: Text(
           "Connect your Google account to check ungraded Classroom work.",
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorHint extends StatelessWidget {
+  const _ErrorHint({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Icon(Icons.error_outline, color: colorScheme.onErrorContainer),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                message,
+                style: TextStyle(color: colorScheme.onErrorContainer),
+              ),
+            ),
+          ],
         ),
       ),
     );

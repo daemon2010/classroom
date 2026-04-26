@@ -7,6 +7,7 @@ import "app.dart";
 import "services/classroom_api_service.dart";
 import "services/csv_export_service.dart";
 import "services/google_auth_service.dart";
+import "services/report_controller.dart";
 import "services/report_service.dart";
 import "services/settings_service.dart";
 import "services/tray_service.dart";
@@ -20,11 +21,23 @@ Future<void> main() async {
   await settingsService.init();
 
   final googleAuthService = GoogleAuthService();
+  final classroomApiService = ClassroomApiService(googleAuthService);
+  const reportService = ReportService();
+  final csvExportService = CsvExportService();
+  final reportController = ReportController(
+    googleAuth: googleAuthService,
+    classroomApi: classroomApiService,
+    report: reportService,
+    csvExport: csvExportService,
+  );
+  await reportController.loadAuthStatus();
+
   final services = AppServices(
     googleAuth: googleAuthService,
-    classroomApi: ClassroomApiService(),
-    report: ReportService(),
-    csvExport: CsvExportService(),
+    classroomApi: classroomApiService,
+    report: reportService,
+    reportController: reportController,
+    csvExport: csvExportService,
     settings: settingsService,
   );
 
@@ -42,54 +55,55 @@ Future<void> main() async {
   final windowController = DesktopWindowController(trayService);
   windowManager.addListener(windowController);
 
+  Future<void> updateTrayState() async {
+    await trayService.updateTrayMenu(
+      ungradedCount: reportController.ungradedCount,
+      lastChecked: reportController.lastChecked,
+      signedInName: reportController.signedInName,
+      isSignedIn: reportController.isSignedIn,
+      hasLoadedRows: reportController.hasLoadedRows,
+      lastError: reportController.lastError,
+      isRefreshing: reportController.isRefreshing,
+    );
+  }
+
+  void scheduleTrayUpdate() {
+    unawaited(updateTrayState());
+  }
+
+  reportController.addListener(scheduleTrayUpdate);
+
+  Future<void> signInFromTray() async {
+    await reportController.signIn();
+    await _showWindow(trayService, navigatorKey, "/");
+  }
+
   runApp(
     ClassroomUngradedCheckerApp(navigatorKey: navigatorKey, services: services),
+  );
+
+  await trayService.init(
+    onOpenReport: () => _showWindow(trayService, navigatorKey, "/"),
+    onCheckNow: reportController.refreshReport,
+    onExportCsv: () async {
+      final exportedPath = await reportController.exportCsv();
+      if (exportedPath == null && reportController.lastError != null) {
+        await _showWindow(trayService, navigatorKey, "/");
+      }
+    },
+    onSignInWithGoogle: signInFromTray,
+    onOpenSettings: () => _showWindow(trayService, navigatorKey, "/settings"),
   );
 
   await windowManager.waitUntilReadyToShow(windowOptions, () async {
     await trayService.hideMainWindow();
   });
 
-  DateTime? lastChecked;
-  Future<void> updateInitialTrayState({DateTime? checkedAt}) async {
-    lastChecked = checkedAt ?? lastChecked;
-    final authStatus = await googleAuthService.currentStatus();
-    final signedInName =
-        authStatus.displayName ?? authStatus.emailAddress ?? "Google account";
+  await updateTrayState();
 
-    await trayService.updateTrayMenu(
-      ungradedCount: 0,
-      lastChecked: lastChecked,
-      signedInName: signedInName,
-      isSignedIn: authStatus.state == GoogleAuthState.signedIn,
-      hasLoadedRows: false,
-      lastError: authStatus.state == GoogleAuthState.unavailable
-          ? authStatus.message
-          : null,
-    );
+  if (reportController.isSignedIn) {
+    unawaited(reportController.refreshReport());
   }
-
-  Future<void> signInFromTray() async {
-    try {
-      await googleAuthService.signIn();
-    } on GoogleAuthException catch (_) {
-      await updateInitialTrayState();
-      await _showWindow(trayService, navigatorKey, "/");
-      return;
-    }
-    await updateInitialTrayState();
-    await _showWindow(trayService, navigatorKey, "/");
-  }
-
-  await trayService.init(
-    onOpenReport: () => _showWindow(trayService, navigatorKey, "/"),
-    onCheckNow: () => updateInitialTrayState(checkedAt: DateTime.now()),
-    onExportCsv: () => _showWindow(trayService, navigatorKey, "/"),
-    onSignInWithGoogle: signInFromTray,
-    onOpenSettings: () => _showWindow(trayService, navigatorKey, "/settings"),
-  );
-
-  await updateInitialTrayState();
 }
 
 Future<void> _showWindow(

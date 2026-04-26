@@ -6,6 +6,7 @@ import "screens/settings_screen.dart";
 import "services/classroom_api_service.dart";
 import "services/csv_export_service.dart";
 import "services/google_auth_service.dart";
+import "services/report_controller.dart";
 import "services/report_service.dart";
 import "services/settings_service.dart";
 
@@ -14,6 +15,7 @@ class AppServices {
     required this.googleAuth,
     required this.classroomApi,
     required this.report,
+    required this.reportController,
     required this.csvExport,
     required this.settings,
   });
@@ -21,6 +23,7 @@ class AppServices {
   final GoogleAuthService googleAuth;
   final ClassroomApiService classroomApi;
   final ReportService report;
+  final ReportController reportController;
   final CsvExportService csvExport;
   final SettingsService settings;
 }

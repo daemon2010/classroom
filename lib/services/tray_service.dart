@@ -64,13 +64,15 @@ class TrayService with TrayListener {
     required bool isSignedIn,
     required bool hasLoadedRows,
     String? lastError,
+    bool isRefreshing = false,
   }) async {
     final hasError = lastError != null && lastError.trim().isNotEmpty;
-    await _setTrayIcon(attention: hasError || ungradedCount > 0);
+    await _setTrayIcon(attention: ungradedCount > 0);
     await trayManager.setToolTip(
       _buildToolTip(
         ungradedCount: ungradedCount,
         lastChecked: lastChecked,
+        isSignedIn: isSignedIn,
         lastError: lastError,
       ),
     );
@@ -81,7 +83,8 @@ class TrayService with TrayListener {
           MenuItem(key: _openReportKey, label: "Open Report"),
           MenuItem(
             key: _checkNowKey,
-            label: "Check Now",
+            label: isRefreshing ? "Checking..." : "Check Now",
+            disabled: isRefreshing,
             toolTip: hasError ? lastError : null,
           ),
           MenuItem(
@@ -97,7 +100,7 @@ class TrayService with TrayListener {
           MenuItem(
             key: _exportCsvKey,
             label: "Export CSV",
-            disabled: !hasLoadedRows,
+            disabled: !isSignedIn || isRefreshing,
           ),
           MenuItem(
             key: _googleSignInKey,
@@ -242,18 +245,25 @@ class TrayService with TrayListener {
   String _buildToolTip({
     required int ungradedCount,
     required DateTime? lastChecked,
+    required bool isSignedIn,
     required String? lastError,
   }) {
-    final buffer = StringBuffer("Classroom Ungraded Checker");
-    buffer.write("\nUngraded works: $ungradedCount");
-    buffer.write("\nLast checked: ${_formatLastChecked(lastChecked)}");
-
-    final error = lastError?.trim();
-    if (error != null && error.isNotEmpty) {
-      buffer.write("\nLast error: $error");
+    if (!isSignedIn) {
+      return "Classroom Ungraded Checker - Sign in required";
     }
 
-    return buffer.toString();
+    if (lastError != null && lastError.trim().isNotEmpty) {
+      return "Last check failed. Open app for details.";
+    }
+
+    return "Ungraded works: $ungradedCount. Last checked: ${_formatToolTipChecked(lastChecked)}";
+  }
+
+  String _formatToolTipChecked(DateTime? lastChecked) {
+    if (lastChecked == null) {
+      return "never";
+    }
+    return DateFormat("HH:mm").format(lastChecked.toLocal());
   }
 
   void _run(Future<void> Function()? callback) {
