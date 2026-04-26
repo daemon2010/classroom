@@ -4,7 +4,9 @@ import "../models/classroom_models.dart";
 import "classroom_api_service.dart";
 import "csv_export_service.dart";
 import "google_auth_service.dart";
+import "notification_service.dart";
 import "report_service.dart";
+import "settings_service.dart";
 
 class ReportController extends ChangeNotifier {
   ReportController({
@@ -12,15 +14,25 @@ class ReportController extends ChangeNotifier {
     required ClassroomApiService classroomApi,
     required ReportService report,
     required CsvExportService csvExport,
+    required SettingsService settings,
+    required NotificationService notifications,
   }) : _googleAuth = googleAuth,
        _classroomApi = classroomApi,
        _report = report,
-       _csvExport = csvExport;
+       _csvExport = csvExport,
+       _settings = settings,
+       _notifications = notifications {
+    _lastSuccessfulCount = settings.settings.lastSuccessfulCount;
+    _lastChecked = settings.settings.lastCheckedAt;
+    _lastError = settings.settings.lastError;
+  }
 
   final GoogleAuthService _googleAuth;
   final ClassroomApiService _classroomApi;
   final ReportService _report;
   final CsvExportService _csvExport;
+  final SettingsService _settings;
+  final NotificationService _notifications;
 
   GoogleAuthStatus _authStatus = const GoogleAuthStatus.signedOut();
   ClassroomProfile? _profile;
@@ -28,6 +40,7 @@ class ReportController extends ChangeNotifier {
   List<ClassroomCourse> _courses = const [];
   bool _isRefreshing = false;
   bool _hasLoadedRows = false;
+  int _lastSuccessfulCount = 0;
   DateTime? _lastChecked;
   String? _lastError;
   Future<bool>? _refreshFuture;
@@ -41,7 +54,15 @@ class ReportController extends ChangeNotifier {
   DateTime? get lastChecked => _lastChecked;
   String? get lastError => _lastError;
   bool get isSignedIn => _authStatus.state == GoogleAuthState.signedIn;
-  int get ungradedCount => _snapshot.rows.length;
+  int get ungradedCount {
+    if (!isSignedIn) {
+      return 0;
+    }
+    if (_hasLoadedRows) {
+      return _snapshot.rows.length;
+    }
+    return _lastSuccessfulCount;
+  }
 
   String? get signedInName {
     final profile = _profile;
@@ -71,6 +92,8 @@ class ReportController extends ChangeNotifier {
   Future<void> loadAuthStatus() async {
     final status = await _googleAuth.currentStatus();
     _authStatus = status;
+    _lastSuccessfulCount = _settings.settings.lastSuccessfulCount;
+    _lastChecked = _settings.settings.lastCheckedAt;
     if (status.state != GoogleAuthState.signedIn) {
       _profile = null;
       _courses = const [];
@@ -79,7 +102,7 @@ class ReportController extends ChangeNotifier {
     }
     _lastError = status.state == GoogleAuthState.unavailable
         ? status.message
-        : null;
+        : _settings.settings.lastError;
     notifyListeners();
   }
 
@@ -88,6 +111,7 @@ class ReportController extends ChangeNotifier {
       await _googleAuth.signIn();
     } on GoogleAuthException catch (error) {
       _lastError = error.message;
+      await _settings.recordRefreshError(error.message);
       notifyListeners();
       return false;
     }
@@ -95,13 +119,26 @@ class ReportController extends ChangeNotifier {
     return refreshReport();
   }
 
-  Future<bool> refreshReport() {
+  Future<void> resetGoogleLogin() async {
+    await _googleAuth.signOut();
+    _authStatus = const GoogleAuthStatus.signedOut();
+    _profile = null;
+    _courses = const [];
+    _snapshot = ReportSnapshot.empty();
+    _hasLoadedRows = false;
+    _isRefreshing = false;
+    _lastError = null;
+    await _settings.recordRefreshError("");
+    notifyListeners();
+  }
+
+  Future<bool> refreshReport({bool isBackground = false}) {
     final inFlight = _refreshFuture;
     if (inFlight != null) {
       return inFlight;
     }
 
-    final future = _refreshReport();
+    final future = _refreshReport(isBackground: isBackground);
     _refreshFuture = future;
     future.whenComplete(() {
       if (identical(_refreshFuture, future)) {
@@ -133,32 +170,39 @@ class ReportController extends ChangeNotifier {
       return exportedPath;
     } catch (_) {
       _lastError = "CSV export could not finish.";
+      await _settings.recordRefreshError(_lastError!);
       notifyListeners();
       return null;
     }
   }
 
-  Future<bool> _refreshReport() async {
+  Future<bool> _refreshReport({required bool isBackground}) async {
     _isRefreshing = true;
     _lastError = null;
     notifyListeners();
 
     final authStatus = await _googleAuth.currentStatus();
     if (authStatus.state != GoogleAuthState.signedIn) {
-      _authStatus = authStatus;
-      _profile = null;
-      _courses = const [];
-      _snapshot = ReportSnapshot.empty();
-      _hasLoadedRows = false;
+      if (!isSignedIn) {
+        _authStatus = authStatus;
+        _profile = null;
+        _courses = const [];
+        _snapshot = ReportSnapshot.empty();
+        _hasLoadedRows = false;
+      }
       _isRefreshing = false;
       _lastError = authStatus.state == GoogleAuthState.unavailable
           ? authStatus.message
           : "Sign in with Google first.";
+      await _settings.recordRefreshError(_lastError ?? "");
       notifyListeners();
       return false;
     }
 
     try {
+      final hadPreviousCount = _settings.settings.hasLastSuccessfulCount;
+      final previousCount = _lastSuccessfulCount;
+      final lastNotifiedCount = _settings.settings.lastNotifiedCount;
       final myProfile = await _classroomApi.getMyProfile();
       final courses = await _classroomApi.listTeacherCourses();
       final courseWork = <ClassroomCourseWork>[];
@@ -193,9 +237,25 @@ class ReportController extends ChangeNotifier {
         submissions: submissions,
       );
       _lastChecked = DateTime.now();
+      _lastSuccessfulCount = _snapshot.rows.length;
       _hasLoadedRows = true;
       _lastError = null;
       _isRefreshing = false;
+      final shouldNotify =
+          isBackground &&
+          _settings.settings.notifyOnNewUngradedWorks &&
+          hadPreviousCount &&
+          _lastSuccessfulCount > previousCount &&
+          (lastNotifiedCount == null ||
+              _lastSuccessfulCount > lastNotifiedCount);
+      await _settings.recordSuccessfulCheck(
+        count: _lastSuccessfulCount,
+        checkedAt: _lastChecked!,
+      );
+      if (shouldNotify &&
+          await _notifications.showNewUngradedWorks(_lastSuccessfulCount)) {
+        await _settings.recordNotificationShown(_lastSuccessfulCount);
+      }
       notifyListeners();
       return true;
     } on ClassroomReadException catch (error) {
@@ -207,6 +267,7 @@ class ReportController extends ChangeNotifier {
     }
 
     _isRefreshing = false;
+    await _settings.recordRefreshError(_lastError ?? "");
     notifyListeners();
     return false;
   }

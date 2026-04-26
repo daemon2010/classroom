@@ -7,6 +7,7 @@ import "app.dart";
 import "services/classroom_api_service.dart";
 import "services/csv_export_service.dart";
 import "services/google_auth_service.dart";
+import "services/notification_service.dart";
 import "services/report_controller.dart";
 import "services/report_service.dart";
 import "services/settings_service.dart";
@@ -24,11 +25,15 @@ Future<void> main() async {
   final classroomApiService = ClassroomApiService(googleAuthService);
   const reportService = ReportService();
   final csvExportService = CsvExportService();
+  final notificationService = NotificationService();
+  await notificationService.init();
   final reportController = ReportController(
     googleAuth: googleAuthService,
     classroomApi: classroomApiService,
     report: reportService,
     csvExport: csvExportService,
+    settings: settingsService,
+    notifications: notificationService,
   );
   await reportController.loadAuthStatus();
 
@@ -73,6 +78,30 @@ Future<void> main() async {
 
   reportController.addListener(scheduleTrayUpdate);
 
+  Timer? backgroundRefreshTimer;
+  void configureBackgroundRefresh() {
+    backgroundRefreshTimer?.cancel();
+    backgroundRefreshTimer = null;
+
+    final settings = settingsService.settings;
+    if (!settings.autoCheckEnabled || settings.refreshIntervalMinutes <= 0) {
+      return;
+    }
+
+    backgroundRefreshTimer = Timer.periodic(
+      Duration(minutes: settings.refreshIntervalMinutes),
+      (_) {
+        if (!reportController.isSignedIn || reportController.isRefreshing) {
+          return;
+        }
+        unawaited(reportController.refreshReport(isBackground: true));
+      },
+    );
+  }
+
+  settingsService.addListener(configureBackgroundRefresh);
+  configureBackgroundRefresh();
+
   Future<void> signInFromTray() async {
     await reportController.signIn();
     await _showWindow(trayService, navigatorKey, "/");
@@ -101,8 +130,9 @@ Future<void> main() async {
 
   await updateTrayState();
 
-  if (reportController.isSignedIn) {
-    unawaited(reportController.refreshReport());
+  if (reportController.isSignedIn &&
+      settingsService.settings.autoCheckEnabled) {
+    unawaited(reportController.refreshReport(isBackground: true));
   }
 }
 

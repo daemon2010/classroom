@@ -54,7 +54,7 @@ class ClassroomUngradedCheckerApp extends StatelessWidget {
       ),
       routes: {
         "/": (_) => HomeScreen(services: services),
-        "/settings": (_) => SettingsScreen(settings: services.settings),
+        "/settings": (_) => SettingsScreen(services: services),
         "/diagnostics": (_) => const DiagnosticsScreen(),
       },
     );

@@ -8,6 +8,14 @@
 - Do not read, print, or commit `assets/credentials.json` or `credentials.json`.
 - Keep `.gitignore` protections for credentials, local state, and `build/`.
 
+## Feature Completion Handoff Rule
+
+- After every feature/request is fully implemented and verification has been attempted, update the project Markdown handoff files before the final response.
+- Treat documentation handoff as part of the definition of done, especially before ending a long turn that could be compacted or run out of tokens.
+- At minimum, update `MEMORY.md` with what changed, what remains pending, verification commands/results or gaps, and any runtime caveats.
+- When behavior, setup, architecture, dependencies, user workflow, or future-agent workflow changes, also update the relevant parts of `README.md`, `RUNBOOK.md`, `AGENTS.md`, and `SKILLS.md`.
+- Handoff notes must be enough for the next session to continue without rereading the whole conversation, but must never include credentials, tokens, client secrets, or credential file contents.
+
 ## Classroom Safety
 
 - This app must stay logically read-only.
@@ -49,3 +57,8 @@ Expected runtime behavior: app starts hidden in the menu bar, close hides the re
 - Tray "Export CSV" must call `ReportController.exportCsv()` so it refreshes first when no report has loaded.
 - Main-window CSV export should only be enabled when the current filtered rows list is non-empty.
 - CSV export defaults to `classroom-ungraded-report.csv` and must use the `csv` package for field escaping.
+- `SettingsService` owns the automatic-check toggle and persisted lightweight state.
+- Automatic checks run every 30 minutes only when signed in and `autoCheckEnabled` is true.
+- Notifications are optional and routed through `NotificationService`.
+- Only background refreshes may trigger notifications, and only when the count increases beyond both the previous successful count and the last notified count.
+- Failed refreshes must keep the previous count and surface a friendly stored error.

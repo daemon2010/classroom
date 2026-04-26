@@ -41,7 +41,15 @@ When launching for a local runtime check, remember the first visible surface is 
 - The class dropdown includes "All classes" plus the active classes returned by Google Classroom.
 - The tray/menu label is updated with the signed-in teacher name when available.
 - The tray "Check Now" action runs the shared report refresh.
-- If already signed in, startup runs a background refresh and updates the tray count when it finishes.
+- If already signed in and automatic checking is enabled, startup runs a background refresh and updates the tray count when it finishes.
+- The "Check automatically every 30 minutes" setting defaults to on. Turning it off stops startup/background refresh, but manual checks still work.
+- Background refreshes are guarded by `ReportController`, so multiple refreshes do not run in parallel.
+- Failed refreshes keep the previous successful count, store a friendly error, and set the tray tooltip to `Last check failed. Open app for details.`
+- Optional desktop notifications use `local_notifier` and are off by default.
+- When notification setting is on, a background refresh notifies only if the new ungraded count is higher than the previous successful count.
+- The app does not notify repeatedly for the same count.
+- The app stores the last successful count, last notified count, last checked time, last selected class, turned-in filter, table column settings, and friendly error locally.
+- Settings include the turned-in-only filter, automatic check toggle, notification toggle, last-class memory, student email column, and late column.
 - The tray tooltip shows sign-in required, last check failed, or `Ungraded works: X. Last checked: HH:mm`.
 - The tray attention icon is used only when the ungraded count is greater than zero.
 - The tray "Export CSV" action exports current loaded rows, refreshing first if no report has been loaded.
@@ -75,8 +83,17 @@ courseWork.creatorUserId == myProfile.id
 
 - Keep teacher-facing UI free of technical words such as API, OAuth, token, scope, JSON, and endpoint.
 
+## Handoff Rule
+
+- After every feature/request is fully implemented and verification has been attempted, update the Markdown handoff files before the final response.
+- Treat this as part of the definition of done, so the next session can continue after context compaction or token exhaustion.
+- Always update `MEMORY.md` with what changed, pending work, verification commands/results or gaps, and runtime caveats.
+- Update `README.md`, `RUNBOOK.md`, `AGENTS.md`, and `SKILLS.md` when behavior, setup, architecture, dependencies, user workflow, or future-agent workflow changes.
+- Never put credentials, tokens, client secrets, or credential file contents in handoff notes.
+
 ## Known Pending Work
 
 - Implement student submission reads and roster/profile lookups.
 - Exercise the tray export path after submission rows exist.
+- Runtime validation of desktop notification permissions and delivery.
 - Add Windows tray verification from the same codebase.

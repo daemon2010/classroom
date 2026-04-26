@@ -2,6 +2,7 @@ import "package:classroom_ungraded_checker/app.dart";
 import "package:classroom_ungraded_checker/services/classroom_api_service.dart";
 import "package:classroom_ungraded_checker/services/csv_export_service.dart";
 import "package:classroom_ungraded_checker/services/google_auth_service.dart";
+import "package:classroom_ungraded_checker/services/notification_service.dart";
 import "package:classroom_ungraded_checker/services/report_controller.dart";
 import "package:classroom_ungraded_checker/services/report_service.dart";
 import "package:classroom_ungraded_checker/services/settings_service.dart";
@@ -38,6 +39,8 @@ AppServices _testServices() {
   final classroomApi = ClassroomApiService(googleAuth);
   const report = ReportService();
   final csvExport = CsvExportService();
+  final settings = SettingsService();
+  final notifications = NotificationService();
 
   return AppServices(
     googleAuth: googleAuth,
@@ -48,8 +51,10 @@ AppServices _testServices() {
       classroomApi: classroomApi,
       report: report,
       csvExport: csvExport,
+      settings: settings,
+      notifications: notifications,
     ),
     csvExport: csvExport,
-    settings: SettingsService(),
+    settings: settings,
   );
 }

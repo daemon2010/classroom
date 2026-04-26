@@ -1,3 +1,5 @@
+import "dart:async";
+
 import "package:flutter/material.dart";
 
 import "../app.dart";
@@ -27,25 +29,35 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _controller = widget.services.reportController;
+    final settings = widget.services.settings.settings;
+    _selectedCourseId = settings.lastSelectedCourseId;
+    _onlyTurnedIn = settings.onlyTurnedIn;
     _controller.addListener(_handleControllerChanged);
+    widget.services.settings.addListener(_handleSettingsChanged);
   }
 
   @override
   void didUpdateWidget(covariant HomeScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.services.reportController ==
+
+    if (oldWidget.services.reportController !=
         widget.services.reportController) {
-      return;
+      _controller.removeListener(_handleControllerChanged);
+      _controller = widget.services.reportController;
+      _controller.addListener(_handleControllerChanged);
     }
 
-    _controller.removeListener(_handleControllerChanged);
-    _controller = widget.services.reportController;
-    _controller.addListener(_handleControllerChanged);
+    if (oldWidget.services.settings != widget.services.settings) {
+      oldWidget.services.settings.removeListener(_handleSettingsChanged);
+      widget.services.settings.addListener(_handleSettingsChanged);
+      _handleSettingsChanged();
+    }
   }
 
   @override
   void dispose() {
     _controller.removeListener(_handleControllerChanged);
+    widget.services.settings.removeListener(_handleSettingsChanged);
     super.dispose();
   }
 
@@ -55,6 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final filteredSummary = _summaryFor(filteredRows);
     final isSignedIn = _controller.isSignedIn;
     final lastError = _controller.lastError;
+    final settings = widget.services.settings.settings;
 
     return Scaffold(
       body: Padding(
@@ -97,11 +110,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 setState(() {
                   _selectedCourseId = courseId;
                 });
+                unawaited(
+                  widget.services.settings.setLastSelectedCourseId(courseId),
+                );
               },
               onOnlyTurnedInChanged: (value) {
                 setState(() {
                   _onlyTurnedIn = value;
                 });
+                unawaited(widget.services.settings.setOnlyTurnedIn(value));
               },
               onSearchChanged: (value) {
                 setState(() {
@@ -112,7 +129,13 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 12),
             SummaryCards(summary: filteredSummary),
             const SizedBox(height: 12),
-            Expanded(child: ReportTable(rows: filteredRows)),
+            Expanded(
+              child: ReportTable(
+                rows: filteredRows,
+                showStudentEmailColumn: settings.showStudentEmailColumn,
+                showLateColumn: settings.showLateColumn,
+              ),
+            ),
           ],
         ),
       ),
@@ -125,7 +148,29 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     setState(() {
-      _selectedCourseId = _validCourseSelection(_controller.courses);
+      final validSelection = _validCourseSelection(_controller.courses);
+      if (validSelection != _selectedCourseId) {
+        unawaited(
+          widget.services.settings.setLastSelectedCourseId(validSelection),
+        );
+      }
+      _selectedCourseId = validSelection;
+    });
+  }
+
+  void _handleSettingsChanged() {
+    if (!mounted) {
+      return;
+    }
+
+    final settings = widget.services.settings.settings;
+    setState(() {
+      _onlyTurnedIn = settings.onlyTurnedIn;
+      if (!settings.rememberLastSelectedCourse) {
+        _selectedCourseId = null;
+      } else {
+        _selectedCourseId = _validCourseSelection(_controller.courses);
+      }
     });
   }
 
