@@ -1,0 +1,18 @@
+# Local Google OAuth credentials and runtime state
+assets/credentials.json
+credentials.json
+token.json
+cache.json
+.env
+
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+
+# IDE and OS files
+.idea/
+*.iml
+.DS_Store

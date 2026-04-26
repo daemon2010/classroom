@@ -1,0 +1,34 @@
+name: classroom_ungraded_checker
+description: A desktop tray app for checking ungraded Google Classroom submissions.
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.10.1 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  crypto: ^3.0.7
+  csv: ^8.0.0
+  file_selector: ^1.1.0
+  googleapis: ^16.0.0
+  googleapis_auth: ^2.3.0
+  http: ^1.6.0
+  intl: ^0.20.2
+  path_provider: ^2.1.5
+  shared_preferences: ^2.5.5
+  tray_manager: ^0.5.2
+  url_launcher: ^6.3.2
+  window_manager: ^0.5.1
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/credentials.json
+    - assets/tray/
