@@ -209,6 +209,10 @@ class ReportController extends ChangeNotifier {
       final submissions = <ClassroomSubmission>[];
 
       for (final course in courses) {
+        final students = await _classroomApi.listCourseStudents(course.id);
+        final studentsById = {
+          for (final student in students) student.id: student,
+        };
         final assignments = await _classroomApi.listMyAssignments(
           courseId: course.id,
           myUserId: myProfile.id,
@@ -222,6 +226,7 @@ class ReportController extends ChangeNotifier {
           final workSubmissions = await _classroomApi.listStudentSubmissions(
             courseId: course.id,
             courseWorkId: work.id,
+            studentsById: studentsById,
           );
           submissions.addAll(workSubmissions);
         }

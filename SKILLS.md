@@ -31,14 +31,18 @@
 - Use `GoogleAuthService.getAuthClient()` to obtain an authenticated client.
 - Use `ClassroomApiService.getMyProfile()` for `userProfiles.get("me")`.
 - Use `ClassroomApiService.listTeacherCourses()` for paginated active class loading.
+- Use `ClassroomApiService.listCourseStudents(courseId)` once per class to resolve student names/emails.
 - Use `ClassroomApiService.listCourseTopics(courseId)` for topic names.
 - Use `ClassroomApiService.listMyAssignments(courseId: ..., myUserId: ...)` for assignment coursework.
+- Use `ClassroomApiService.listStudentSubmissions(courseId: ..., courseWorkId: ..., studentsById: ...)` for paginated turned-in submission reads.
 - Never bypass the `creatorUserId == myProfile.id` filter when loading assignments.
 - Keep write-capable scope usage logically read-only.
 
 ## Report Logic
 
 - Build report rows only from coursework created by the authenticated teacher.
+- Report rows should include only turned-in submissions where both assigned grade and draft grade are unset.
+- Key coursework matching by both class id and coursework id.
 - Use `ReportController.refreshReport()` for Check Now, startup refresh, and refresh-before-export.
 - Gate startup and periodic background refresh with `SettingsService.settings.autoCheckEnabled`.
 - Rely on `ReportController` in-flight protection to avoid parallel refreshes.

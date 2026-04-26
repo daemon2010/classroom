@@ -41,16 +41,19 @@ class StatusPanel extends StatelessWidget {
               icon: Icons.account_circle_outlined,
               label: "Account",
               value: accountText,
+              maxWidth: 520,
             ),
             _StatusItem(
               icon: Icons.update_outlined,
               label: "Last checked",
               value: _formatTime(lastChecked),
+              maxWidth: 240,
             ),
             _StatusItem(
               icon: Icons.pending_actions_outlined,
               label: "Ungraded works",
               value: ungradedCount.toString(),
+              maxWidth: 260,
             ),
           ],
         ),
@@ -89,25 +92,40 @@ class _StatusItem extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.value,
+    required this.maxWidth,
   });
 
   final IconData icon;
   final String label;
   final String value;
+  final double maxWidth;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 18),
-        const SizedBox(width: 6),
-        Text("$label: ", style: Theme.of(context).textTheme.labelLarge),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Text(value, overflow: TextOverflow.ellipsis),
-        ),
-      ],
+    final labelStyle = Theme.of(context).textTheme.labelLarge;
+    final valueStyle = DefaultTextStyle.of(context).style;
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(text: "$label: ", style: labelStyle),
+                  TextSpan(text: value, style: valueStyle),
+                ],
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

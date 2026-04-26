@@ -104,6 +104,20 @@ class ClassroomAssignment {
   }
 }
 
+class ClassroomStudent {
+  const ClassroomStudent({
+    required this.id,
+    required this.fullName,
+    this.emailAddress,
+    this.photoUrl,
+  });
+
+  final String id;
+  final String fullName;
+  final String? emailAddress;
+  final String? photoUrl;
+}
+
 class ClassroomCourseWork {
   const ClassroomCourseWork({
     required this.id,
@@ -141,6 +155,7 @@ class ClassroomSubmission {
     this.draftGrade,
     this.updateTime,
     this.submissionUrl,
+    this.late,
   });
 
   final String id;
@@ -154,6 +169,7 @@ class ClassroomSubmission {
   final double? draftGrade;
   final DateTime? updateTime;
   final String? submissionUrl;
+  final bool? late;
 
   bool get isUngraded {
     return state == SubmissionState.turnedIn &&
@@ -190,6 +206,7 @@ class UngradedSubmissionReportRow {
     this.maxPoints,
     this.submissionUrl,
     this.assignmentUrl,
+    this.late,
   });
 
   final String courseId;
@@ -209,8 +226,14 @@ class UngradedSubmissionReportRow {
   final double? maxPoints;
   final String? submissionUrl;
   final String? assignmentUrl;
+  final bool? late;
 
   bool get isLate {
+    final explicitLate = late;
+    if (explicitLate != null) {
+      return explicitLate;
+    }
+
     final due = dueDate;
     final updated = updatedAt;
     if (due == null || updated == null) {

@@ -36,8 +36,12 @@ When launching for a local runtime check, remember the first visible surface is 
 - Saved sign-in access is restored locally on startup.
 - The app can load the signed-in teacher profile with `userProfiles.get("me")`.
 - The app can load active teacher classes with `courses.list(teacherId: "me", courseStates: ["ACTIVE"])`.
+- The app can load class rosters with `courses.students.list(courseId)` to show student names and emails.
 - The app can load course topics with `courses.topics.list(courseId)`.
 - The app can load assignment coursework with `courses.courseWork.list(courseId)` and keeps only items where `creatorUserId == myProfile.id` and `workType == "ASSIGNMENT"`.
+- The app can load turned-in submissions with `courses.courseWork.studentSubmissions.list(courseId, courseWorkId, states: ["TURNED_IN"])`.
+- Report rows include only turned-in submissions for teacher-owned assignments where no assigned or draft grade is present.
+- The earlier `0` result was expected before this read path existed because `listStudentSubmissions()` returned an empty list.
 - The class dropdown includes "All classes" plus the active classes returned by Google Classroom.
 - The tray/menu label is updated with the signed-in teacher name when available.
 - The tray "Check Now" action runs the shared report refresh.
@@ -93,7 +97,14 @@ courseWork.creatorUserId == myProfile.id
 
 ## Known Pending Work
 
-- Implement student submission reads and roster/profile lookups.
-- Exercise the tray export path after submission rows exist.
+- Runtime validation against the user's real Classroom data after pressing "Check Now".
+- Exercise the tray export path with real submission rows.
 - Runtime validation of desktop notification permissions and delivery.
 - Add Windows tray verification from the same codebase.
+
+## Latest Verification
+
+- `dart format lib test` - passed.
+- `flutter analyze` - passed.
+- `flutter test` - passed.
+- `flutter build macos` - passed.

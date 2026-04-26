@@ -18,17 +18,23 @@ class ReportService {
 
     final coursesById = {for (final course in courses) course.id: course};
     final ownedCourseWorkById = {
-      for (final work in ownedCourseWork) work.id: work,
+      for (final work in ownedCourseWork)
+        _courseWorkKey(work.courseId, work.id): work,
     };
 
     final rows = submissions
         .where((submission) => submission.isUngraded)
         .where(
-          (submission) =>
-              ownedCourseWorkById.containsKey(submission.courseWorkId),
+          (submission) => ownedCourseWorkById.containsKey(
+            _courseWorkKey(submission.courseId, submission.courseWorkId),
+          ),
         )
         .map((submission) {
-          final work = ownedCourseWorkById[submission.courseWorkId]!;
+          final work =
+              ownedCourseWorkById[_courseWorkKey(
+                submission.courseId,
+                submission.courseWorkId,
+              )]!;
           final course = coursesById[submission.courseId];
 
           return UngradedSubmissionReportRow(
@@ -42,13 +48,18 @@ class ReportService {
             submissionState: submission.state,
             studentEmail: submission.studentEmail,
             classSection: course?.section,
-            subject: work.subjectName ?? course?.subject ?? course?.section,
+            subject: _firstPresent([
+              work.subjectName,
+              course?.subject,
+              course?.section,
+            ]),
             dueDate: work.dueDate,
             updatedAt: submission.updateTime,
             createdAt: work.createdAt,
             maxPoints: work.maxPoints,
             submissionUrl: submission.submissionUrl,
             assignmentUrl: work.alternateLink,
+            late: submission.late,
           );
         })
         .toList(growable: false);
@@ -68,5 +79,19 @@ class ReportService {
       generatedAt: DateTime.now(),
       creatorFilterUserId: myProfileId,
     );
+  }
+
+  String _courseWorkKey(String courseId, String courseWorkId) {
+    return "$courseId/$courseWorkId";
+  }
+
+  String? _firstPresent(List<String?> values) {
+    for (final value in values) {
+      final trimmed = value?.trim();
+      if (trimmed != null && trimmed.isNotEmpty) {
+        return trimmed;
+      }
+    }
+    return null;
   }
 }

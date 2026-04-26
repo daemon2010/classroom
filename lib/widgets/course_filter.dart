@@ -24,60 +24,74 @@ class CourseFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        SizedBox(
-          width: 260,
-          child: DropdownButtonFormField<String?>(
-            initialValue: selectedCourseId,
-            decoration: const InputDecoration(
-              labelText: "Class",
-              border: OutlineInputBorder(),
-              isDense: true,
-            ),
-            items: [
-              const DropdownMenuItem<String?>(
-                value: null,
-                child: Text("All classes"),
-              ),
-              for (final course in courses)
-                DropdownMenuItem<String?>(
-                  value: course.id,
-                  child: Text(_courseLabel(course)),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 760;
+        final classWidth = isNarrow ? constraints.maxWidth : 260.0;
+        final searchWidth = isNarrow ? constraints.maxWidth : 390.0;
+
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            SizedBox(
+              width: classWidth,
+              child: DropdownButtonFormField<String?>(
+                initialValue: selectedCourseId,
+                decoration: const InputDecoration(
+                  labelText: "Class",
+                  border: OutlineInputBorder(),
+                  isDense: true,
                 ),
-            ],
-            onChanged: courses.isEmpty ? null : onCourseChanged,
-          ),
-        ),
-        SizedBox(
-          width: 390,
-          child: TextFormField(
-            initialValue: searchQuery,
-            decoration: const InputDecoration(
-              labelText: "Search",
-              hintText: "Student, class, subject, or assignment",
-              border: OutlineInputBorder(),
-              isDense: true,
-              prefixIcon: Icon(Icons.search),
+                items: [
+                  const DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text("All classes"),
+                  ),
+                  for (final course in courses)
+                    DropdownMenuItem<String?>(
+                      value: course.id,
+                      child: Text(
+                        _courseLabel(course),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                ],
+                onChanged: courses.isEmpty ? null : onCourseChanged,
+              ),
             ),
-            onChanged: onSearchChanged,
-          ),
-        ),
-        FilterChip(
-          selected: onlyTurnedIn,
-          onSelected: onOnlyTurnedInChanged,
-          avatar: Icon(
-            onlyTurnedIn
-                ? Icons.check_circle_outline
-                : Icons.radio_button_unchecked,
-            size: 18,
-          ),
-          label: const Text("Only show works turned in by students"),
-        ),
-      ],
+            SizedBox(
+              width: searchWidth,
+              child: TextFormField(
+                initialValue: searchQuery,
+                decoration: const InputDecoration(
+                  labelText: "Search",
+                  hintText: "Student, class, subject, or assignment",
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                  prefixIcon: Icon(Icons.search),
+                ),
+                onChanged: onSearchChanged,
+              ),
+            ),
+            ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: constraints.maxWidth),
+              child: FilterChip(
+                selected: onlyTurnedIn,
+                onSelected: onOnlyTurnedInChanged,
+                avatar: Icon(
+                  onlyTurnedIn
+                      ? Icons.check_circle_outline
+                      : Icons.radio_button_unchecked,
+                  size: 18,
+                ),
+                label: const Text("Only show works turned in by students"),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

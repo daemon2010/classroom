@@ -22,8 +22,10 @@
 - Allowed Classroom calls currently implemented:
   - `userProfiles.get("me")`
   - `courses.list(teacherId: "me")`
+  - `courses.students.list(courseId)`
   - `courses.topics.list(courseId)`
   - `courses.courseWork.list(courseId)`
+  - `courses.courseWork.studentSubmissions.list(courseId, courseWorkId)`
 - Do not wire create, patch, delete, return, grade, or submission-modifying calls.
 - Preserve the report ownership rule:
 
@@ -53,6 +55,8 @@ Expected runtime behavior: app starts hidden in the menu bar, close hides the re
 ## Current Architecture Notes
 
 - `ReportController` owns shared report state for the tray and main window.
+- `ReportController.refreshReport()` loads profile, active teacher classes, class rosters, teacher-owned assignments, and turned-in submissions.
+- `ReportService` must still key coursework by both class id and coursework id before matching submissions.
 - Tray "Check Now" must call `ReportController.refreshReport()`.
 - Tray "Export CSV" must call `ReportController.exportCsv()` so it refreshes first when no report has loaded.
 - Main-window CSV export should only be enabled when the current filtered rows list is non-empty.

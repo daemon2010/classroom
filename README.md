@@ -11,8 +11,8 @@ A Flutter desktop tray/menu bar app for checking ungraded Google Classroom submi
 - Optional desktop notifications can alert when a background check finds a higher ungraded count.
 - Google browser sign-in is implemented for desktop.
 - Signed-in access is restored locally on app startup.
-- Google Classroom profile, active teacher course, topic, and teacher-owned assignment reads are implemented.
-- Classroom submission reads are still pending.
+- Google Classroom profile, active teacher course, roster, topic, teacher-owned assignment, and turned-in student submission reads are implemented.
+- Report rows are built from turned-in submissions with no assigned or draft grade.
 - Classroom write operations are not implemented and must stay unwired.
 - CSV export saves UTF-8 CSV through a desktop save dialog with `classroom-ungraded-report.csv` as the default filename.
 - The app stores the last successful count, last notified count, last checked time, last selected class, table column settings, and turned-in filter setting locally.

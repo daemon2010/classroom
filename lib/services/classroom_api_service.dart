@@ -245,6 +245,52 @@ class ClassroomApiService {
     return assignments;
   }
 
+  Future<List<ClassroomStudent>> listCourseStudents(String courseId) async {
+    final api = await _classroomApi();
+    final students = <ClassroomStudent>[];
+    String? pageToken;
+
+    try {
+      do {
+        final response = await api.courses.students.list(
+          courseId,
+          pageSize: 100,
+          pageToken: pageToken,
+          $fields:
+              "students(userId,profile(id,emailAddress,name/fullName,photoUrl)),nextPageToken",
+        );
+
+        for (final student
+            in response.students ?? const <classroom.Student>[]) {
+          final profile = student.profile;
+          final id = (student.userId ?? profile?.id)?.trim();
+          if (id == null || id.isEmpty) {
+            continue;
+          }
+
+          final name = profile?.name?.fullName?.trim();
+          final email = profile?.emailAddress?.trim();
+          students.add(
+            ClassroomStudent(
+              id: id,
+              fullName: _studentNameFromProfile(name: name, email: email),
+              emailAddress: email?.isEmpty ?? true ? null : email,
+              photoUrl: profile?.photoUrl,
+            ),
+          );
+        }
+
+        pageToken = response.nextPageToken;
+      } while (pageToken?.isNotEmpty ?? false);
+    } catch (_) {
+      throw const ClassroomReadException(
+        "Could not load the student list for one of your classes.",
+      );
+    }
+
+    return students;
+  }
+
   Future<List<ClassroomCourseWork>> listCourseWork(String courseId) async {
     return const [];
   }
@@ -252,8 +298,84 @@ class ClassroomApiService {
   Future<List<ClassroomSubmission>> listStudentSubmissions({
     required String courseId,
     required String courseWorkId,
+    Map<String, ClassroomStudent> studentsById = const {},
   }) async {
-    return const [];
+    final api = await _classroomApi();
+    final submissions = <ClassroomSubmission>[];
+    String? pageToken;
+
+    try {
+      do {
+        final response = await api.courses.courseWork.studentSubmissions.list(
+          courseId,
+          courseWorkId,
+          pageSize: 100,
+          pageToken: pageToken,
+          states: const ["TURNED_IN"],
+          $fields:
+              "studentSubmissions(id,courseId,courseWorkId,userId,state,assignedGrade,draftGrade,updateTime,alternateLink,late,courseWorkType),nextPageToken",
+        );
+
+        for (final submission
+            in response.studentSubmissions ??
+                const <classroom.StudentSubmission>[]) {
+          if (submission.courseWorkType != null &&
+              submission.courseWorkType != "ASSIGNMENT") {
+            continue;
+          }
+
+          final id = submission.id?.trim();
+          final studentUserId = submission.userId?.trim();
+          if (id == null ||
+              id.isEmpty ||
+              studentUserId == null ||
+              studentUserId.isEmpty) {
+            continue;
+          }
+
+          final student = studentsById[studentUserId];
+          submissions.add(
+            ClassroomSubmission(
+              id: id,
+              courseId: submission.courseId ?? courseId,
+              courseWorkId: submission.courseWorkId ?? courseWorkId,
+              studentUserId: studentUserId,
+              studentName: _studentDisplayName(student),
+              state: _parseSubmissionState(submission.state),
+              studentEmail: student?.emailAddress,
+              assignedGrade: submission.assignedGrade,
+              draftGrade: submission.draftGrade,
+              updateTime: _parseTimestamp(submission.updateTime),
+              submissionUrl: submission.alternateLink,
+              late: submission.late,
+            ),
+          );
+        }
+
+        pageToken = response.nextPageToken;
+      } while (pageToken?.isNotEmpty ?? false);
+    } catch (_) {
+      throw const ClassroomReadException(
+        "Could not load student work from Google Classroom.",
+      );
+    }
+
+    submissions.sort((a, b) {
+      final aUpdated = a.updateTime;
+      final bUpdated = b.updateTime;
+      if (aUpdated != null && bUpdated != null) {
+        return bUpdated.compareTo(aUpdated);
+      }
+      if (aUpdated != null) {
+        return -1;
+      }
+      if (bUpdated != null) {
+        return 1;
+      }
+      return a.studentName.toLowerCase().compareTo(b.studentName.toLowerCase());
+    });
+
+    return submissions;
   }
 
   Future<classroom.ClassroomApi> _classroomApi() async {
@@ -301,6 +423,46 @@ class ClassroomApiService {
       seconds: seconds,
       microseconds: nanos ~/ 1000,
     );
+  }
+
+  SubmissionState _parseSubmissionState(String? value) {
+    return switch (value) {
+      "NEW" => SubmissionState.newSubmission,
+      "CREATED" => SubmissionState.created,
+      "TURNED_IN" => SubmissionState.turnedIn,
+      "RETURNED" => SubmissionState.returned,
+      "RECLAIMED_BY_STUDENT" => SubmissionState.reclaimedByStudent,
+      _ => SubmissionState.unknown,
+    };
+  }
+
+  String _studentDisplayName(ClassroomStudent? student) {
+    final fullName = student?.fullName.trim();
+    if (fullName != null && fullName.isNotEmpty) {
+      return fullName;
+    }
+
+    final email = student?.emailAddress?.trim();
+    if (email != null && email.isNotEmpty) {
+      return email;
+    }
+
+    return "Unknown student";
+  }
+
+  String _studentNameFromProfile({
+    required String? name,
+    required String? email,
+  }) {
+    if (name != null && name.isNotEmpty) {
+      return name;
+    }
+
+    if (email != null && email.isNotEmpty) {
+      return email;
+    }
+
+    return "Unknown student";
   }
 
   Future<auth.AuthClient> _requireAuthClient() async {

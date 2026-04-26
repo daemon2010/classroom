@@ -14,9 +14,15 @@ Implemented:
 - Compact main window UI with status, actions, class filter, summaries, and report table.
 - Teacher profile read with `classroom.userProfiles.get("me")`.
 - Active teacher class read with paginated `classroom.courses.list(teacherId: "me")`.
+- Class roster read with paginated `classroom.courses.students.list(courseId)`.
 - Course topic read with paginated `classroom.courses.topics.list(courseId)`.
 - Teacher-owned assignment read with paginated `classroom.courses.courseWork.list(courseId)`.
 - Assignment filtering by `creatorUserId == myProfile.id` and `workType == "ASSIGNMENT"`.
+- Turned-in student submission read with paginated `classroom.courses.courseWork.studentSubmissions.list(courseId, courseWorkId, states: ["TURNED_IN"])`.
+- Report rows now include turned-in submissions for teacher-owned assignments when both assigned grade and draft grade are unset.
+- Student names/emails are resolved from class rosters.
+- The report builder keys coursework by class and work id so matching cannot cross between classes.
+- Status and filter layout were tightened to avoid the debug overflow stripe seen with long account/class text.
 - Course dropdown population from active classes.
 - Shared report controller used by the tray and main window.
 - Tray "Check Now" runs real refresh. Startup and periodic background refresh run only when signed in and automatic checking is enabled.
@@ -29,11 +35,17 @@ Implemented:
 - CSV export writes UTF-8 CSV through the desktop save dialog using the default filename `classroom-ungraded-report.csv`.
 - CSV rows include student, class, subject, assignment, state, late flag, timestamps, points, and links.
 
+Last verification:
+
+- `dart format lib test` - passed.
+- `flutter analyze` - passed.
+- `flutter test` - passed.
+- `flutter build macos` - passed.
+
 Still pending:
 
-- Submission read implementation.
-- End-to-end report rows from Google Classroom.
-- Runtime validation of CSV export once submission rows are available.
+- Runtime validation against the user's real Classroom data after pressing "Check Now".
+- Runtime validation of CSV export once real submission rows are available.
 - Runtime validation of the 30-minute background timer.
 - Runtime validation of notification permissions and delivery.
 - Windows tray build/runtime verification.

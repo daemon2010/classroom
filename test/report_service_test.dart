@@ -51,4 +51,49 @@ void main() {
     expect(snapshot.rows.single.submissionId, "submission-mine");
     expect(snapshot.rows.single.assignmentTitle, "Logic gates");
   });
+
+  test("keeps matching work scoped to its class", () {
+    const service = ReportService();
+    final snapshot = service.buildSnapshot(
+      myProfile: const ClassroomProfile(
+        id: "teacher-me",
+        emailAddress: "teacher@example.com",
+        fullName: "Teacher",
+      ),
+      courses: const [
+        ClassroomCourse(id: "course-1", name: "Electronics"),
+        ClassroomCourse(id: "course-2", name: "Programming"),
+      ],
+      courseWork: const [
+        ClassroomCourseWork(
+          id: "same-work-id",
+          courseId: "course-1",
+          title: "Logic gates",
+          creatorUserId: "teacher-other",
+        ),
+        ClassroomCourseWork(
+          id: "same-work-id",
+          courseId: "course-2",
+          title: "Loops",
+          creatorUserId: "teacher-me",
+        ),
+      ],
+      submissions: const [
+        ClassroomSubmission(
+          id: "submission-course-2",
+          courseId: "course-2",
+          courseWorkId: "same-work-id",
+          studentUserId: "student-1",
+          studentName: "Student One",
+          state: SubmissionState.turnedIn,
+          late: true,
+        ),
+      ],
+    );
+
+    expect(snapshot.summary.ungradedSubmissionCount, 1);
+    expect(snapshot.rows.single.courseName, "Programming");
+    expect(snapshot.rows.single.assignmentTitle, "Loops");
+    expect(snapshot.rows.single.isLate, isTrue);
+  });
 }
