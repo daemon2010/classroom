@@ -48,7 +48,16 @@
 - Table columns should stay sortable when columns are visible.
 - Compact controls should use ellipsis/expanded dropdowns and shorter button labels instead of overflowing.
 - Add widget tests for compact layouts when fixing UI overflow issues.
+- Keep live status clocks scoped to mounted widgets and cancel timers in `dispose()`.
+- Use `lib/l10n/app_localizations.dart` and `lib/l10n/app_language.dart` for teacher-facing UI strings.
+- Default interface language should follow the operating system when the setting is `system`; Settings may override to English, Ukrainian, or Russian.
+- When adding teacher-facing text, localize it unless it is fixed report data or a Google/service diagnostic detail.
+- Keep notification delivery behind `NotificationService`; macOS uses the native `classroom_notifications` channel in `macos/Runner/AppDelegate.swift`.
+- Keep Settings > Send test notification working when changing notification behavior.
 - Key coursework matching by both class id and coursework id.
+- Keep `ReportCacheService` as the only local report-cache writer.
+- Save the cache only after successful refreshes, clear it on Google login reset, and never store Google credentials in it.
+- Startup should restore cached rows/classes/profile before deciding whether a full background refresh is needed.
 - Use `ReportController.refreshReport()` for Check Now, startup refresh, and refresh-before-export.
 - Gate startup and periodic background refresh with `SettingsService.settings.autoCheckEnabled`.
 - Rely on `ReportController` in-flight protection to avoid parallel refreshes.

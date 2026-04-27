@@ -53,16 +53,22 @@ The current main executable is universal (`x86_64 arm64`). A bundled `objective_
 - Report rows are sorted newest submitted first by default.
 - The main table columns are sortable.
 - The main view filters to the current submitted year by default. Use the "Year" button to select multiple years or all years.
+- The main status area shows a live `Now` clock and refreshes the last-checked age every second while the report window is open.
+- Interface language supports English, Ukrainian, and Russian through `lib/l10n/`. The default setting follows the operating system language, and Settings includes a manual language selector.
+- The main window, settings, diagnostics, tray/menu text, and notification text use the selected interface language where practical. Service-level error strings may still be English.
 - Compact window layouts shorten action labels and expand dropdown text safely to avoid Flutter overflow stripes.
 - The earlier `0` result was expected before this read path existed because `listStudentSubmissions()` returned an empty list.
 - The class dropdown includes "All classes" plus the active classes returned by Google Classroom.
 - The tray/menu label is updated with the signed-in teacher name when available.
 - The tray "Check Now" action runs the shared report refresh.
-- If already signed in and automatic checking is enabled, startup runs a background refresh and updates the tray count when it finishes.
+- If already signed in, startup first restores the last successful report from `ReportCacheService`.
+- The report cache is stored in the app support directory as `cache.json` and includes profile, classes, report rows, and checked time. It does not store Google credentials.
+- If automatic checking is enabled, startup only runs an immediate background refresh when the cache is missing or older than the configured interval.
 - The "Check automatically every 30 minutes" setting defaults to on. Turning it off stops startup/background refresh, but manual checks still work.
 - Background refreshes are guarded by `ReportController`, so multiple refreshes do not run in parallel.
 - Failed refreshes keep the previous successful count, store a friendly error, and set the tray tooltip to `Last check failed. Open app for details.`
-- Optional desktop notifications use `local_notifier` and are off by default.
+- Optional desktop notifications are off by default. macOS uses the native `UNUserNotificationCenter` bridge; Windows/Linux use `local_notifier`.
+- Settings includes "Send test notification" to request/check OS permission and verify notification delivery.
 - When notification setting is on, a background refresh notifies only if the new ungraded count is higher than the previous successful count.
 - The app does not notify repeatedly for the same count.
 - The app stores the last successful count, last notified count, last checked time, last selected class, turned-in filter, table column settings, and friendly error locally.
@@ -111,8 +117,9 @@ courseWork.creatorUserId == myProfile.id
 ## Known Pending Work
 
 - Runtime validation against the user's real Classroom data after pressing "Check Now".
+- Runtime validation that a second launch restores cached report rows and avoids an immediate full Classroom scan when the cache is fresh.
 - Exercise the tray export path with real submission rows.
-- Runtime validation of desktop notification permissions and delivery.
+- Runtime validation of desktop notification delivery through Settings > Send test notification.
 - Resolve or validate the `objective_c.framework` `arm64`-only bundle caveat before claiming a clean universal macOS release.
 - Add Windows tray verification from the same codebase.
 
@@ -120,5 +127,5 @@ courseWork.creatorUserId == myProfile.id
 
 - `dart format lib test` - passed.
 - `flutter analyze` - passed.
-- `flutter test` - passed, including a compact filter overflow regression test.
+- `flutter test` - passed, including compact filter overflow and Ukrainian language regression tests.
 - `flutter build macos` - passed.

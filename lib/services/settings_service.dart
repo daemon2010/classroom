@@ -1,8 +1,11 @@
 import "package:flutter/foundation.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
+import "../l10n/app_language.dart";
+
 class AppSettings {
   const AppSettings({
+    required this.interfaceLanguageCode,
     required this.refreshIntervalMinutes,
     required this.includeArchivedCourses,
     required this.autoCheckEnabled,
@@ -19,6 +22,7 @@ class AppSettings {
     this.lastError,
   });
 
+  final String interfaceLanguageCode;
   final int refreshIntervalMinutes;
   final bool includeArchivedCourses;
   final bool autoCheckEnabled;
@@ -35,6 +39,7 @@ class AppSettings {
   final String? lastError;
 
   AppSettings copyWith({
+    String? interfaceLanguageCode,
     int? refreshIntervalMinutes,
     bool? includeArchivedCourses,
     bool? autoCheckEnabled,
@@ -51,6 +56,8 @@ class AppSettings {
     Object? lastError = _unchanged,
   }) {
     return AppSettings(
+      interfaceLanguageCode:
+          interfaceLanguageCode ?? this.interfaceLanguageCode,
       refreshIntervalMinutes:
           refreshIntervalMinutes ?? this.refreshIntervalMinutes,
       includeArchivedCourses:
@@ -82,6 +89,7 @@ class AppSettings {
 }
 
 class SettingsService extends ChangeNotifier {
+  static const _interfaceLanguageCodeKey = "interfaceLanguageCode";
   static const _includeArchivedCoursesKey = "includeArchivedCourses";
   static const _autoCheckEnabledKey = "autoCheckEnabled";
   static const _notifyOnNewUngradedWorksKey = "notifyOnNewUngradedWorks";
@@ -96,6 +104,7 @@ class SettingsService extends ChangeNotifier {
   static const _lastErrorKey = "lastError";
 
   AppSettings _settings = const AppSettings(
+    interfaceLanguageCode: AppLanguage.system,
     refreshIntervalMinutes: 30,
     includeArchivedCourses: false,
     autoCheckEnabled: true,
@@ -113,6 +122,9 @@ class SettingsService extends ChangeNotifier {
   Future<void> init() async {
     final preferences = await SharedPreferences.getInstance();
     _settings = AppSettings(
+      interfaceLanguageCode: AppLanguage.normalizeSetting(
+        preferences.getString(_interfaceLanguageCodeKey),
+      ),
       refreshIntervalMinutes: _settings.refreshIntervalMinutes,
       includeArchivedCourses:
           preferences.getBool(_includeArchivedCoursesKey) ??
@@ -142,6 +154,14 @@ class SettingsService extends ChangeNotifier {
       lastNotifiedCount: preferences.getInt(_lastNotifiedCountKey),
       lastError: preferences.getString(_lastErrorKey),
     );
+  }
+
+  Future<void> setInterfaceLanguageCode(String value) async {
+    final languageCode = AppLanguage.normalizeSetting(value);
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(_interfaceLanguageCodeKey, languageCode);
+    _settings = _settings.copyWith(interfaceLanguageCode: languageCode);
+    notifyListeners();
   }
 
   Future<void> setAutoCheckEnabled(bool value) async {

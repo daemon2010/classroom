@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 
+import "../l10n/app_localizations.dart";
 import "../models/classroom_models.dart";
 
 class CourseFilter extends StatelessWidget {
@@ -30,6 +31,7 @@ class CourseFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return LayoutBuilder(
       builder: (context, constraints) {
         final isNarrow = constraints.maxWidth < 760;
@@ -47,14 +49,14 @@ class CourseFilter extends StatelessWidget {
                 initialValue: selectedCourseId,
                 isExpanded: true,
                 decoration: const InputDecoration(
-                  labelText: "Class",
+                  labelText: "",
                   border: OutlineInputBorder(),
                   isDense: true,
-                ),
+                ).copyWith(labelText: l10n.classLabel),
                 selectedItemBuilder: (context) {
                   return [
-                    const Text(
-                      "All classes",
+                    Text(
+                      l10n.allClasses,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -69,11 +71,7 @@ class CourseFilter extends StatelessWidget {
                 items: [
                   const DropdownMenuItem<String?>(
                     value: null,
-                    child: Text(
-                      "All classes",
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    child: _AllClassesLabel(),
                   ),
                   for (final course in courses)
                     DropdownMenuItem<String?>(
@@ -92,12 +90,12 @@ class CourseFilter extends StatelessWidget {
               child: TextFormField(
                 initialValue: searchQuery,
                 decoration: const InputDecoration(
-                  labelText: "Search",
-                  hintText: "Student, class, subject, or assignment",
+                  labelText: "",
+                  hintText: "",
                   border: OutlineInputBorder(),
                   isDense: true,
                   prefixIcon: Icon(Icons.search),
-                ),
+                ).copyWith(labelText: l10n.search, hintText: l10n.searchHint),
                 onChanged: onSearchChanged,
               ),
             ),
@@ -117,7 +115,7 @@ class CourseFilter extends StatelessWidget {
                       : Icons.radio_button_unchecked,
                   size: 18,
                 ),
-                label: const Text("Only show works turned in by students"),
+                label: Text(l10n.onlyTurnedInTitle),
               ),
             ),
           ],
@@ -148,14 +146,16 @@ class _YearSelectorButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return OutlinedButton.icon(
       onPressed: () => _openYearDialog(context),
       icon: const Icon(Icons.calendar_month_outlined),
-      label: Text(_buttonLabel()),
+      label: Text(_buttonLabel(l10n)),
     );
   }
 
   Future<void> _openYearDialog(BuildContext context) async {
+    final l10n = context.l10n;
     var draftYears = selectedYears.isEmpty
         ? {DateTime.now().year}
         : {...selectedYears};
@@ -166,7 +166,7 @@ class _YearSelectorButton extends StatelessWidget {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: const Text("Submitted years"),
+              title: Text(l10n.submittedYears),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -198,17 +198,17 @@ class _YearSelectorButton extends StatelessWidget {
                     final currentYear = DateTime.now().year;
                     Navigator.of(context).pop({currentYear});
                   },
-                  child: const Text("Current year"),
+                  child: Text(l10n.currentYear),
                 ),
                 TextButton(
                   onPressed: () {
                     Navigator.of(context).pop(availableYears.toSet());
                   },
-                  child: const Text("All years"),
+                  child: Text(l10n.allYears),
                 ),
                 FilledButton(
                   onPressed: () => Navigator.of(context).pop(draftYears),
-                  child: const Text("Apply"),
+                  child: Text(l10n.apply),
                 ),
               ],
             );
@@ -222,18 +222,31 @@ class _YearSelectorButton extends StatelessWidget {
     }
   }
 
-  String _buttonLabel() {
+  String _buttonLabel(AppLocalizations l10n) {
     final currentYear = DateTime.now().year;
     if (selectedYears.length == availableYears.length &&
         availableYears.every(selectedYears.contains)) {
-      return "Years: all";
+      return l10n.yearsAll;
     }
 
     if (selectedYears.length == 1 && selectedYears.contains(currentYear)) {
-      return "Year: $currentYear";
+      return l10n.yearLabel(currentYear);
     }
 
     final sortedYears = selectedYears.toList()..sort((a, b) => b.compareTo(a));
-    return "Years: ${sortedYears.join(", ")}";
+    return l10n.yearsList(sortedYears.join(", "));
+  }
+}
+
+class _AllClassesLabel extends StatelessWidget {
+  const _AllClassesLabel();
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      context.l10n.allClasses,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
   }
 }

@@ -8,16 +8,21 @@ A Flutter desktop tray/menu bar app for checking ungraded Google Classroom submi
 - macOS is configured as a menu bar accessory app with the main window hidden by default.
 - The current macOS release executable builds as universal `x86_64` and `arm64`; one bundled `objective_c.framework` is currently `arm64` only and should be resolved or Intel-tested before distribution.
 - Tray/menu actions open the report, run checks, export CSV, sign in, open settings, and quit through shared app state.
-- If already signed in and automatic checking is enabled, the app runs a background refresh on startup and every 30 minutes.
+- If already signed in, the app restores the last successful report from a local cache on startup.
+- If automatic checking is enabled, startup only scans Classroom immediately when the cache is missing or older than the check interval; otherwise the next periodic check handles refresh.
 - Optional desktop notifications can alert when a background check finds a higher ungraded count.
+- macOS notifications use a native notification bridge and Settings includes a test notification action.
 - Google browser sign-in is implemented for desktop.
 - Signed-in access is restored locally on app startup.
 - Google Classroom profile, active teacher course, roster, topic, teacher-owned assignment, and turned-in student submission reads are implemented.
 - Report rows are built from turned-in submissions with no assigned or draft grade.
 - Report rows sort by submitted date by default, table columns are sortable, and the main view defaults to the current submitted year with multi-year selection available.
+- The main status area includes a live `Now` clock and updates last-checked age while the window is open.
+- Interface localization supports English, Ukrainian, and Russian. The default follows the operating system language, and Settings can override the interface language.
 - Classroom write operations are not implemented and must stay unwired.
 - CSV export saves UTF-8 CSV through a desktop save dialog with `classroom-ungraded-report.csv` as the default filename.
 - The app stores the last successful count, last notified count, last checked time, last selected class, table column settings, and turned-in filter setting locally.
+- The app also stores a local report cache in the app support directory. It contains report data such as student names/emails and links, but no Google credentials.
 
 ## Core report rule
 

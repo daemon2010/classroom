@@ -5,6 +5,9 @@ import "package:intl/intl.dart";
 import "package:tray_manager/tray_manager.dart";
 import "package:window_manager/window_manager.dart";
 
+import "../l10n/app_language.dart";
+import "../l10n/app_localizations.dart";
+
 class TrayService with TrayListener {
   Future<void> init({
     required Future<void> Function() onOpenReport,
@@ -21,7 +24,9 @@ class TrayService with TrayListener {
 
     trayManager.addListener(this);
     await _setTrayIcon(attention: false);
-    await trayManager.setToolTip("Classroom Ungraded Checker");
+    await trayManager.setToolTip(
+      AppLocalizations.forLanguageCode(AppLanguage.english).appTitle,
+    );
     await updateTrayMenu(
       ungradedCount: 0,
       isSignedIn: false,
@@ -65,7 +70,9 @@ class TrayService with TrayListener {
     required bool hasLoadedRows,
     String? lastError,
     bool isRefreshing = false,
+    String languageCode = AppLanguage.english,
   }) async {
+    final l10n = AppLocalizations.forLanguageCode(languageCode);
     final hasError = lastError != null && lastError.trim().isNotEmpty;
     await _setTrayIcon(attention: ungradedCount > 0);
     await trayManager.setToolTip(
@@ -74,32 +81,33 @@ class TrayService with TrayListener {
         lastChecked: lastChecked,
         isSignedIn: isSignedIn,
         lastError: lastError,
+        l10n: l10n,
       ),
     );
 
     await trayManager.setContextMenu(
       Menu(
         items: [
-          MenuItem(key: _openReportKey, label: "Open Report"),
+          MenuItem(key: _openReportKey, label: l10n.openReport),
           MenuItem(
             key: _checkNowKey,
-            label: isRefreshing ? "Checking..." : "Check Now",
+            label: isRefreshing ? l10n.checking : l10n.checkNow,
             disabled: isRefreshing,
             toolTip: hasError ? lastError : null,
           ),
           MenuItem(
             key: _ungradedCountKey,
-            label: "Ungraded works: $ungradedCount",
+            label: l10n.ungradedWorksCount(ungradedCount),
             disabled: true,
           ),
           MenuItem(
             key: _lastCheckedKey,
-            label: "Last checked: ${_formatLastChecked(lastChecked)}",
+            label: l10n.lastCheckedValue(_formatLastChecked(l10n, lastChecked)),
             disabled: true,
           ),
           MenuItem(
             key: _exportCsvKey,
-            label: "Export CSV",
+            label: l10n.exportCsv,
             disabled: !isSignedIn || isRefreshing,
           ),
           MenuItem(
@@ -107,11 +115,12 @@ class TrayService with TrayListener {
             label: _buildAuthLabel(
               isSignedIn: isSignedIn,
               signedInName: signedInName,
+              l10n: l10n,
             ),
             disabled: isSignedIn,
           ),
-          MenuItem(key: _settingsKey, label: "Settings"),
-          MenuItem(key: _quitKey, label: "Quit"),
+          MenuItem(key: _settingsKey, label: l10n.settings),
+          MenuItem(key: _quitKey, label: l10n.quit),
         ],
       ),
     );
@@ -220,26 +229,30 @@ class TrayService with TrayListener {
     return now.difference(lastClick) <= const Duration(milliseconds: 400);
   }
 
-  String _formatLastChecked(DateTime? lastChecked) {
+  String _formatLastChecked(AppLocalizations l10n, DateTime? lastChecked) {
     if (lastChecked == null) {
-      return "never";
+      return l10n.never;
     }
-    return DateFormat("MMM d, HH:mm").format(lastChecked.toLocal());
+    return DateFormat(
+      "yyyy-MM-dd HH:mm",
+      l10n.localeName,
+    ).format(lastChecked.toLocal());
   }
 
   String _buildAuthLabel({
     required bool isSignedIn,
     required String? signedInName,
+    required AppLocalizations l10n,
   }) {
     if (!isSignedIn) {
-      return "Sign in with Google";
+      return l10n.signInWithGoogle;
     }
 
     final name = signedInName?.trim();
     if (name == null || name.isEmpty) {
-      return "Signed in";
+      return l10n.signedIn;
     }
-    return "Signed in as $name";
+    return l10n.signedInAsTray(name);
   }
 
   String _buildToolTip({
@@ -247,23 +260,27 @@ class TrayService with TrayListener {
     required DateTime? lastChecked,
     required bool isSignedIn,
     required String? lastError,
+    required AppLocalizations l10n,
   }) {
     if (!isSignedIn) {
-      return "Classroom Ungraded Checker - Sign in required";
+      return l10n.signInRequiredTooltip;
     }
 
     if (lastError != null && lastError.trim().isNotEmpty) {
-      return "Last check failed. Open app for details.";
+      return l10n.lastCheckFailedTooltip;
     }
 
-    return "Ungraded works: $ungradedCount. Last checked: ${_formatToolTipChecked(lastChecked)}";
+    return l10n.trayTooltip(
+      ungradedCount,
+      _formatToolTipChecked(l10n, lastChecked),
+    );
   }
 
-  String _formatToolTipChecked(DateTime? lastChecked) {
+  String _formatToolTipChecked(AppLocalizations l10n, DateTime? lastChecked) {
     if (lastChecked == null) {
-      return "never";
+      return l10n.never;
     }
-    return DateFormat("HH:mm").format(lastChecked.toLocal());
+    return DateFormat("HH:mm", l10n.localeName).format(lastChecked.toLocal());
   }
 
   void _run(Future<void> Function()? callback) {

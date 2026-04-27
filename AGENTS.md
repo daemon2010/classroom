@@ -60,6 +60,13 @@ Expected runtime behavior: app starts hidden in the menu bar, close hides the re
 - Submitted date should come from `TURNED_IN` state history when available and should drive default row ordering.
 - The main table should keep sortable columns and default to the current submitted year, with multi-year selection available.
 - Compact desktop widths must not show Flutter overflow stripes. Prefer ellipsized dropdown text, shorter action labels, and regression widget tests.
+- Any live UI timer must be scoped to the widget lifecycle and cancelled in `dispose()`.
+- Teacher-facing UI uses in-repo localization for English, Ukrainian, and Russian. Default follows the operating system language; Settings can override it.
+- Add new teacher-facing strings through `AppLocalizations` and keep language regression coverage when changing core labels.
+- Notification delivery stays behind `NotificationService`; macOS uses the native `classroom_notifications` channel in `macos/Runner/AppDelegate.swift`.
+- Use Settings > Send test notification as the runtime notification permission/delivery check.
+- `ReportCacheService` owns the local report cache. Save it only after successful refreshes, clear it on Google login reset, and never store Google credentials in it.
+- Startup should restore cached rows/classes/profile first, then only run an immediate background refresh when the cache is missing or stale.
 - Tray "Check Now" must call `ReportController.refreshReport()`.
 - Tray "Export CSV" must call `ReportController.exportCsv()` so it refreshes first when no report has loaded.
 - Main-window CSV export should only be enabled when the current filtered rows list is non-empty.

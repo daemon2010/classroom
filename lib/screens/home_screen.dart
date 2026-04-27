@@ -3,6 +3,7 @@ import "dart:async";
 import "package:flutter/material.dart";
 
 import "../app.dart";
+import "../l10n/app_localizations.dart";
 import "../models/classroom_models.dart";
 import "../services/report_controller.dart";
 import "../widgets/course_filter.dart";
@@ -27,6 +28,8 @@ class _HomeScreenState extends State<HomeScreen> {
   late Set<int> _selectedSubmittedYears;
   ReportSortColumn _sortColumn = ReportSortColumn.submitted;
   bool _sortAscending = false;
+  DateTime _currentTime = DateTime.now();
+  Timer? _clockTimer;
 
   @override
   void initState() {
@@ -38,6 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _selectedSubmittedYears = {DateTime.now().year};
     _controller.addListener(_handleControllerChanged);
     widget.services.settings.addListener(_handleSettingsChanged);
+    _startClock();
   }
 
   @override
@@ -60,6 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    _clockTimer?.cancel();
     _controller.removeListener(_handleControllerChanged);
     widget.services.settings.removeListener(_handleSettingsChanged);
     super.dispose();
@@ -87,6 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
             StatusPanel(
               authStatus: _controller.authStatus,
               lastChecked: _controller.lastChecked,
+              currentTime: _currentTime,
               ungradedCount: filteredRows.length,
             ),
             if (lastError != null && lastError.isNotEmpty) ...[
@@ -187,13 +193,26 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void _startClock() {
+    _clockTimer?.cancel();
+    _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _currentTime = DateTime.now();
+      });
+    });
+  }
+
   Future<void> _connect() async {
     final connected = await _controller.signIn();
     if (!mounted || connected) {
       return;
     }
 
-    _showMessage(_controller.lastError ?? "Google sign-in could not finish.");
+    _showMessage(_controller.lastError ?? context.l10n.googleSignInFailed);
   }
 
   Future<void> _refreshReport() async {
@@ -202,7 +221,7 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    _showMessage(_controller.lastError ?? "Classroom check could not finish.");
+    _showMessage(_controller.lastError ?? context.l10n.classroomCheckFailed);
   }
 
   List<UngradedSubmissionReportRow> _filteredRows(
@@ -404,7 +423,7 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    _showMessage("CSV exported successfully.");
+    _showMessage(context.l10n.csvExported);
   }
 
   void _openSettings() {
@@ -419,12 +438,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String _stateLabel(SubmissionState state) {
     return switch (state) {
-      SubmissionState.newSubmission => "New",
-      SubmissionState.created => "Assigned",
-      SubmissionState.turnedIn => "Turned in",
-      SubmissionState.returned => "Returned",
-      SubmissionState.reclaimedByStudent => "Taken back",
-      SubmissionState.unknown => "Unknown",
+      SubmissionState.newSubmission => context.l10n.newState,
+      SubmissionState.created => context.l10n.assignedState,
+      SubmissionState.turnedIn => context.l10n.turnedInState,
+      SubmissionState.returned => context.l10n.returnedState,
+      SubmissionState.reclaimedByStudent => context.l10n.takenBackState,
+      SubmissionState.unknown => context.l10n.unknown,
     };
   }
 }
@@ -436,16 +455,17 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Row(
       children: [
         Expanded(
           child: Text(
-            "Classroom Ungraded Checker",
+            l10n.appTitle,
             style: Theme.of(context).textTheme.headlineSmall,
           ),
         ),
         IconButton(
-          tooltip: "Settings",
+          tooltip: l10n.settings,
           onPressed: onSettings,
           icon: const Icon(Icons.settings_outlined),
         ),
@@ -508,6 +528,7 @@ class _ActionBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 680;
@@ -517,7 +538,7 @@ class _ActionBar extends StatelessWidget {
           runSpacing: 10,
           children: [
             Tooltip(
-              message: isSignedIn ? "Signed in" : "Sign in with Google",
+              message: isSignedIn ? l10n.signedIn : l10n.signInWithGoogle,
               child: FilledButton.icon(
                 onPressed: isSignedIn || isLoading ? null : onSignIn,
                 icon: Icon(
@@ -527,13 +548,13 @@ class _ActionBar extends StatelessWidget {
                 ),
                 label: Text(
                   isSignedIn
-                      ? (compact ? "Signed" : "Signed in")
-                      : (compact ? "Sign in" : "Sign in with Google"),
+                      ? (compact ? l10n.signed : l10n.signedIn)
+                      : (compact ? l10n.signIn : l10n.signInWithGoogle),
                 ),
               ),
             ),
             Tooltip(
-              message: "Check Now",
+              message: l10n.checkNow,
               child: FilledButton.tonalIcon(
                 onPressed: isLoading ? null : onCheckNow,
                 icon: isLoading
@@ -542,23 +563,23 @@ class _ActionBar extends StatelessWidget {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.refresh),
-                label: Text(compact ? "Check" : "Check Now"),
+                label: Text(compact ? l10n.check : l10n.checkNow),
               ),
             ),
             Tooltip(
-              message: "Export CSV",
+              message: l10n.exportCsv,
               child: FilledButton.tonalIcon(
                 onPressed: canExport ? onExportCsv : null,
                 icon: const Icon(Icons.download_outlined),
-                label: Text(compact ? "Export" : "Export CSV"),
+                label: Text(compact ? l10n.export : l10n.exportCsv),
               ),
             ),
             Tooltip(
-              message: "Settings",
+              message: l10n.settings,
               child: OutlinedButton.icon(
                 onPressed: onSettings,
                 icon: const Icon(Icons.settings_outlined),
-                label: const Text("Settings"),
+                label: Text(l10n.settings),
               ),
             ),
           ],

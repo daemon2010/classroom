@@ -9,6 +9,9 @@ class MainFlutterWindow: NSWindow {
     self.setFrame(windowFrame, display: true)
 
     RegisterGeneratedPlugins(registry: flutterViewController)
+    ClassroomNotificationBridge.shared.register(
+      messenger: flutterViewController.engine.binaryMessenger
+    )
 
     super.awakeFromNib()
   }

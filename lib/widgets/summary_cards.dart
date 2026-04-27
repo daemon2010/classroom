@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 
+import "../l10n/app_localizations.dart";
 import "../models/classroom_models.dart";
 
 class SummaryCards extends StatelessWidget {
@@ -9,11 +10,12 @@ class SummaryCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Row(
       children: [
         Expanded(
           child: _SummaryCard(
-            label: "Total ungraded",
+            label: l10n.totalUngraded,
             value: summary.ungradedSubmissionCount.toString(),
             icon: Icons.pending_actions_outlined,
           ),
@@ -21,7 +23,7 @@ class SummaryCards extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(
           child: _SummaryCard(
-            label: "Classes with ungraded works",
+            label: l10n.classesWithUngraded,
             value: summary.classesWithUngradedCount.toString(),
             icon: Icons.school_outlined,
           ),
@@ -29,7 +31,7 @@ class SummaryCards extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(
           child: _SummaryCard(
-            label: "Late submissions",
+            label: l10n.lateSubmissions,
             value: summary.lateSubmissionCount.toString(),
             icon: Icons.schedule_outlined,
           ),

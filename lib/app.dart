@@ -1,5 +1,8 @@
 import "package:flutter/material.dart";
+import "package:flutter_localizations/flutter_localizations.dart";
 
+import "l10n/app_language.dart";
+import "l10n/app_localizations.dart";
 import "screens/diagnostics_screen.dart";
 import "screens/home_screen.dart";
 import "screens/settings_screen.dart";
@@ -40,22 +43,39 @@ class ClassroomUngradedCheckerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      navigatorKey: navigatorKey,
-      title: "Classroom Ungraded Checker",
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF0F766E),
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-        visualDensity: VisualDensity.compact,
-      ),
-      routes: {
-        "/": (_) => HomeScreen(services: services),
-        "/settings": (_) => SettingsScreen(services: services),
-        "/diagnostics": (_) => const DiagnosticsScreen(),
+    return AnimatedBuilder(
+      animation: services.settings,
+      builder: (context, _) {
+        final languageCode = services.settings.settings.interfaceLanguageCode;
+
+        return MaterialApp(
+          navigatorKey: navigatorKey,
+          onGenerateTitle: (context) => context.l10n.appTitle,
+          debugShowCheckedModeBanner: false,
+          locale: languageCode == AppLanguage.system
+              ? null
+              : Locale(languageCode),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+          ],
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF0F766E),
+              brightness: Brightness.light,
+            ),
+            useMaterial3: true,
+            visualDensity: VisualDensity.compact,
+          ),
+          routes: {
+            "/": (_) => HomeScreen(services: services),
+            "/settings": (_) => SettingsScreen(services: services),
+            "/diagnostics": (_) => const DiagnosticsScreen(),
+          },
+        );
       },
     );
   }

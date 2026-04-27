@@ -1,39 +1,42 @@
 import "package:flutter/material.dart";
 
+import "../l10n/app_localizations.dart";
+
 class DiagnosticsScreen extends StatelessWidget {
   const DiagnosticsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
-      appBar: AppBar(title: const Text("Diagnostics")),
+      appBar: AppBar(title: Text(l10n.diagnostics)),
       body: ListView(
         padding: const EdgeInsets.all(16),
-        children: const [
+        children: [
           _DiagnosticTile(
             icon: Icons.desktop_mac_outlined,
-            label: "Desktop shell",
-            value: "Menu bar/tray enabled",
+            label: l10n.desktopShell,
+            value: l10n.menuBarTrayEnabled,
           ),
           _DiagnosticTile(
             icon: Icons.login_outlined,
-            label: "Google sign-in",
-            value: "Browser sign-in enabled",
+            label: l10n.googleSignIn,
+            value: l10n.browserSignInEnabled,
           ),
           _DiagnosticTile(
             icon: Icons.school_outlined,
-            label: "Classroom access",
-            value: "Profile, classes, topics, and assignments enabled",
+            label: l10n.classroomAccess,
+            value: l10n.classroomAccessEnabled,
           ),
           _DiagnosticTile(
             icon: Icons.filter_alt_outlined,
-            label: "Assignment filter",
-            value: "Only assignments created by this teacher",
+            label: l10n.assignmentFilter,
+            value: l10n.assignmentFilterValue,
           ),
           _DiagnosticTile(
             icon: Icons.upload_file_outlined,
-            label: "CSV export",
-            value: "String builder only; file writing disabled",
+            label: l10n.csvExport,
+            value: l10n.csvExportEnabled,
           ),
         ],
       ),

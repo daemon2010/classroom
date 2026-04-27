@@ -4,10 +4,13 @@ import "package:flutter/material.dart";
 import "package:window_manager/window_manager.dart";
 
 import "app.dart";
+import "l10n/app_language.dart";
+import "l10n/app_localizations.dart";
 import "services/classroom_api_service.dart";
 import "services/csv_export_service.dart";
 import "services/google_auth_service.dart";
 import "services/notification_service.dart";
+import "services/report_cache_service.dart";
 import "services/report_controller.dart";
 import "services/report_service.dart";
 import "services/settings_service.dart";
@@ -25,6 +28,7 @@ Future<void> main() async {
   final classroomApiService = ClassroomApiService(googleAuthService);
   const reportService = ReportService();
   final csvExportService = CsvExportService();
+  final reportCacheService = ReportCacheService();
   final notificationService = NotificationService();
   await notificationService.init();
   final reportController = ReportController(
@@ -32,6 +36,7 @@ Future<void> main() async {
     classroomApi: classroomApiService,
     report: reportService,
     csvExport: csvExportService,
+    cache: reportCacheService,
     settings: settingsService,
     notifications: notificationService,
   );
@@ -46,11 +51,13 @@ Future<void> main() async {
     settings: settingsService,
   );
 
-  const windowOptions = WindowOptions(
-    size: Size(1000, 700),
-    minimumSize: Size(760, 500),
+  final windowOptions = WindowOptions(
+    size: const Size(1000, 700),
+    minimumSize: const Size(760, 500),
     center: true,
-    title: "Classroom Ungraded Checker",
+    title: AppLocalizations.forLanguageCode(
+      _resolvedInterfaceLanguage(settingsService),
+    ).appTitle,
   );
 
   await windowManager.setPreventClose(true);
@@ -69,6 +76,7 @@ Future<void> main() async {
       hasLoadedRows: reportController.hasLoadedRows,
       lastError: reportController.lastError,
       isRefreshing: reportController.isRefreshing,
+      languageCode: _resolvedInterfaceLanguage(settingsService),
     );
   }
 
@@ -99,7 +107,19 @@ Future<void> main() async {
     );
   }
 
-  settingsService.addListener(configureBackgroundRefresh);
+  void handleSettingsChanged() {
+    configureBackgroundRefresh();
+    unawaited(
+      windowManager.setTitle(
+        AppLocalizations.forLanguageCode(
+          _resolvedInterfaceLanguage(settingsService),
+        ).appTitle,
+      ),
+    );
+    scheduleTrayUpdate();
+  }
+
+  settingsService.addListener(handleSettingsChanged);
   configureBackgroundRefresh();
 
   Future<void> signInFromTray() async {
@@ -130,8 +150,8 @@ Future<void> main() async {
 
   await updateTrayState();
 
-  if (reportController.isSignedIn &&
-      settingsService.settings.autoCheckEnabled) {
+  if (settingsService.settings.autoCheckEnabled &&
+      reportController.shouldRefreshOnStartup) {
     unawaited(reportController.refreshReport(isBackground: true));
   }
 }
@@ -164,4 +184,11 @@ class DesktopWindowController with WindowListener {
   void onWindowClose() {
     unawaited(trayService.hideMainWindow());
   }
+}
+
+String _resolvedInterfaceLanguage(SettingsService settingsService) {
+  final setting = settingsService.settings.interfaceLanguageCode;
+  final systemLanguage =
+      WidgetsBinding.instance.platformDispatcher.locale.languageCode;
+  return AppLanguage.resolve(setting, systemLanguage);
 }

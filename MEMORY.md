@@ -24,6 +24,9 @@ Implemented:
 - Report rows now include turned-in submissions for teacher-owned assignments when both assigned grade and draft grade are unset.
 - Report rows sort newest submitted first by default, and main-window table columns are sortable.
 - Main-window rows default to the current submitted year, with a compact year selector for multiple years or all years.
+- Main-window status includes a live `Now` clock and recomputes last-checked age every second while mounted.
+- Interface localization supports English, Ukrainian, and Russian. Default language follows the operating system, with a Settings override persisted in `shared_preferences`.
+- Localized surfaces include the main window, settings, diagnostics, tray/menu labels/tooltips, and desktop notification text where practical. Some service-level error strings remain English.
 - Student names/emails are resolved from class rosters.
 - The report builder keys coursework by class and work id so matching cannot cross between classes.
 - Status/filter/action layout was tightened to avoid the debug overflow stripe seen in compact windows.
@@ -31,12 +34,17 @@ Implemented:
 - Widget coverage includes a compact filter layout regression test with a long class name.
 - Course dropdown population from active classes.
 - Shared report controller used by the tray and main window.
-- Tray "Check Now" runs real refresh. Startup and periodic background refresh run only when signed in and automatic checking is enabled.
+- `ReportCacheService` stores the last successful profile, classes, rows, and checked time in the app support directory as `cache.json`.
+- Startup restores cached rows/classes/profile for the signed-in teacher before the window/tray render, so the tray count and report are available without scanning every class again.
+- Startup only runs an immediate background refresh when automatic checking is enabled and the cached check is missing or older than the configured interval.
+- Tray "Check Now" runs a real refresh. Periodic background refresh runs only when signed in and automatic checking is enabled.
 - Automatic checking defaults to every 30 minutes and is controlled from Settings.
 - Refresh failures keep the previous successful count and store a friendly error for the main window and tray tooltip.
-- Desktop notifications are implemented behind `NotificationService` using `local_notifier`; the setting defaults to off.
+- Desktop notifications are implemented behind `NotificationService`; macOS uses a native `UNUserNotificationCenter` bridge and Windows/Linux still use `local_notifier`.
 - Notification logic only runs for background refreshes when the ungraded count increases and has not already notified for that count.
+- Settings includes "Send test notification" to request/check macOS notification permission and verify delivery without waiting for a new Classroom count.
 - Local state persists the last successful count, last notified count, last checked time, last selected class, turned-in filter, table column settings, and last friendly error.
+- The report cache contains local Classroom report data such as student names/emails and assignment links, but no Google credentials or sign-in secrets.
 - Tray export uses the currently loaded rows and refreshes first if no report has been loaded.
 - CSV export writes UTF-8 CSV through the desktop save dialog using the default filename `classroom-ungraded-report.csv`.
 - CSV rows include student, class, subject, assignment, state, late flag, timestamps, points, and links.
@@ -45,15 +53,16 @@ Last verification:
 
 - `dart format lib test` - passed.
 - `flutter analyze` - passed.
-- `flutter test` - passed, including compact layout regression coverage.
+- `flutter test` - passed, including compact layout and Ukrainian language regression coverage.
 - `flutter build macos` - passed.
 
 Still pending:
 
 - Runtime validation against the user's real Classroom data after pressing "Check Now".
+- Runtime validation that second app launch restores the cached report without running an immediate full Classroom scan when the cache is fresh.
 - Runtime validation of CSV export once real submission rows are available.
 - Runtime validation of the 30-minute background timer.
-- Runtime validation of notification permissions and delivery.
+- Runtime validation of notification banner delivery through Settings > Send test notification.
 - Resolve or validate the bundled `objective_c.framework` `arm64`-only caveat for Intel Mac distribution.
 - Windows tray build/runtime verification.
 
