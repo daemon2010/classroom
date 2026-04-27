@@ -30,6 +30,14 @@ The app hides the main window on startup and appears in the macOS menu bar. Use 
 
 When launching for a local runtime check, remember the first visible surface is the tray/menu bar icon, not the main window.
 
+Check macOS build architectures:
+
+```bash
+lipo -info build/macos/Build/Products/Release/classroom_ungraded_checker.app/Contents/MacOS/classroom_ungraded_checker
+```
+
+The current main executable is universal (`x86_64 arm64`). A bundled `objective_c.framework` currently reports `arm64` only, so clean Intel distribution still needs follow-up or direct Intel Mac validation.
+
 ## Current Behavior
 
 - Google browser sign-in is implemented for desktop.
@@ -40,7 +48,12 @@ When launching for a local runtime check, remember the first visible surface is 
 - The app can load course topics with `courses.topics.list(courseId)`.
 - The app can load assignment coursework with `courses.courseWork.list(courseId)` and keeps only items where `creatorUserId == myProfile.id` and `workType == "ASSIGNMENT"`.
 - The app can load turned-in submissions with `courses.courseWork.studentSubmissions.list(courseId, courseWorkId, states: ["TURNED_IN"])`.
+- Submitted date is taken from the latest `TURNED_IN` state history timestamp when available, with submission update time as a fallback.
 - Report rows include only turned-in submissions for teacher-owned assignments where no assigned or draft grade is present.
+- Report rows are sorted newest submitted first by default.
+- The main table columns are sortable.
+- The main view filters to the current submitted year by default. Use the "Year" button to select multiple years or all years.
+- Compact window layouts shorten action labels and expand dropdown text safely to avoid Flutter overflow stripes.
 - The earlier `0` result was expected before this read path existed because `listStudentSubmissions()` returned an empty list.
 - The class dropdown includes "All classes" plus the active classes returned by Google Classroom.
 - The tray/menu label is updated with the signed-in teacher name when available.
@@ -69,7 +82,7 @@ When launching for a local runtime check, remember the first visible surface is 
 - Assignment
 - Submission State
 - Late
-- Updated At
+- Submitted At
 - Created At
 - Max Points
 - Submission Link
@@ -100,11 +113,12 @@ courseWork.creatorUserId == myProfile.id
 - Runtime validation against the user's real Classroom data after pressing "Check Now".
 - Exercise the tray export path with real submission rows.
 - Runtime validation of desktop notification permissions and delivery.
+- Resolve or validate the `objective_c.framework` `arm64`-only bundle caveat before claiming a clean universal macOS release.
 - Add Windows tray verification from the same codebase.
 
 ## Latest Verification
 
 - `dart format lib test` - passed.
 - `flutter analyze` - passed.
-- `flutter test` - passed.
+- `flutter test` - passed, including a compact filter overflow regression test.
 - `flutter build macos` - passed.

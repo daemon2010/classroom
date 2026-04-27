@@ -54,6 +54,7 @@ class ReportService {
               course?.section,
             ]),
             dueDate: work.dueDate,
+            submittedAt: submission.submittedAt,
             updatedAt: submission.updateTime,
             createdAt: work.createdAt,
             maxPoints: work.maxPoints,
@@ -63,6 +64,7 @@ class ReportService {
           );
         })
         .toList(growable: false);
+    rows.sort(_compareSubmittedNewestFirst);
 
     return ReportSnapshot(
       rows: rows,
@@ -93,5 +95,23 @@ class ReportService {
       }
     }
     return null;
+  }
+
+  int _compareSubmittedNewestFirst(
+    UngradedSubmissionReportRow a,
+    UngradedSubmissionReportRow b,
+  ) {
+    final aSubmitted = a.submittedAt ?? a.updatedAt;
+    final bSubmitted = b.submittedAt ?? b.updatedAt;
+    if (aSubmitted == null && bSubmitted == null) {
+      return a.studentName.toLowerCase().compareTo(b.studentName.toLowerCase());
+    }
+    if (aSubmitted == null) {
+      return 1;
+    }
+    if (bSubmitted == null) {
+      return -1;
+    }
+    return bSubmitted.compareTo(aSubmitted);
   }
 }

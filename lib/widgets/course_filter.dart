@@ -8,9 +8,12 @@ class CourseFilter extends StatelessWidget {
     required this.selectedCourseId,
     required this.onlyTurnedIn,
     required this.searchQuery,
+    required this.availableSubmittedYears,
+    required this.selectedSubmittedYears,
     required this.onCourseChanged,
     required this.onOnlyTurnedInChanged,
     required this.onSearchChanged,
+    required this.onSubmittedYearsChanged,
     super.key,
   });
 
@@ -18,9 +21,12 @@ class CourseFilter extends StatelessWidget {
   final String? selectedCourseId;
   final bool onlyTurnedIn;
   final String searchQuery;
+  final List<int> availableSubmittedYears;
+  final Set<int> selectedSubmittedYears;
   final ValueChanged<String?> onCourseChanged;
   final ValueChanged<bool> onOnlyTurnedInChanged;
   final ValueChanged<String> onSearchChanged;
+  final ValueChanged<Set<int>> onSubmittedYearsChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -39,15 +45,35 @@ class CourseFilter extends StatelessWidget {
               width: classWidth,
               child: DropdownButtonFormField<String?>(
                 initialValue: selectedCourseId,
+                isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: "Class",
                   border: OutlineInputBorder(),
                   isDense: true,
                 ),
+                selectedItemBuilder: (context) {
+                  return [
+                    const Text(
+                      "All classes",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    for (final course in courses)
+                      Text(
+                        _courseLabel(course),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ];
+                },
                 items: [
                   const DropdownMenuItem<String?>(
                     value: null,
-                    child: Text("All classes"),
+                    child: Text(
+                      "All classes",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   for (final course in courses)
                     DropdownMenuItem<String?>(
@@ -75,6 +101,11 @@ class CourseFilter extends StatelessWidget {
                 onChanged: onSearchChanged,
               ),
             ),
+            _YearSelectorButton(
+              availableYears: availableSubmittedYears,
+              selectedYears: selectedSubmittedYears,
+              onChanged: onSubmittedYearsChanged,
+            ),
             ConstrainedBox(
               constraints: BoxConstraints(maxWidth: constraints.maxWidth),
               child: FilterChip(
@@ -101,5 +132,108 @@ class CourseFilter extends StatelessWidget {
       return course.name;
     }
     return "${course.name} - $section";
+  }
+}
+
+class _YearSelectorButton extends StatelessWidget {
+  const _YearSelectorButton({
+    required this.availableYears,
+    required this.selectedYears,
+    required this.onChanged,
+  });
+
+  final List<int> availableYears;
+  final Set<int> selectedYears;
+  final ValueChanged<Set<int>> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: () => _openYearDialog(context),
+      icon: const Icon(Icons.calendar_month_outlined),
+      label: Text(_buttonLabel()),
+    );
+  }
+
+  Future<void> _openYearDialog(BuildContext context) async {
+    var draftYears = selectedYears.isEmpty
+        ? {DateTime.now().year}
+        : {...selectedYears};
+
+    final selected = await showDialog<Set<int>>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text("Submitted years"),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final year in availableYears)
+                      CheckboxListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(year.toString()),
+                        value: draftYears.contains(year),
+                        onChanged: (checked) {
+                          setDialogState(() {
+                            final next = {...draftYears};
+                            if (checked ?? false) {
+                              next.add(year);
+                            } else if (next.length > 1) {
+                              next.remove(year);
+                            }
+                            draftYears = next;
+                          });
+                        },
+                      ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    final currentYear = DateTime.now().year;
+                    Navigator.of(context).pop({currentYear});
+                  },
+                  child: const Text("Current year"),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(availableYears.toSet());
+                  },
+                  child: const Text("All years"),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(context).pop(draftYears),
+                  child: const Text("Apply"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (selected != null && selected.isNotEmpty) {
+      onChanged(selected);
+    }
+  }
+
+  String _buttonLabel() {
+    final currentYear = DateTime.now().year;
+    if (selectedYears.length == availableYears.length &&
+        availableYears.every(selectedYears.contains)) {
+      return "Years: all";
+    }
+
+    if (selectedYears.length == 1 && selectedYears.contains(currentYear)) {
+      return "Year: $currentYear";
+    }
+
+    final sortedYears = selectedYears.toList()..sort((a, b) => b.compareTo(a));
+    return "Years: ${sortedYears.join(", ")}";
   }
 }

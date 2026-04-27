@@ -7,6 +7,7 @@ This repo contains a Flutter desktop app named `classroom_ungraded_checker`.
 Implemented:
 
 - macOS menu bar and Windows-ready tray shell using `tray_manager`.
+- Current macOS release executable is universal `x86_64 arm64`; bundled `objective_c.framework` reports `arm64` only and needs follow-up before a clean universal release claim.
 - Window lifecycle using `window_manager`; startup hides the main window and close hides instead of quitting.
 - Desktop Google sign-in in the system browser.
 - Local sign-in restore with `shared_preferences`.
@@ -19,10 +20,15 @@ Implemented:
 - Teacher-owned assignment read with paginated `classroom.courses.courseWork.list(courseId)`.
 - Assignment filtering by `creatorUserId == myProfile.id` and `workType == "ASSIGNMENT"`.
 - Turned-in student submission read with paginated `classroom.courses.courseWork.studentSubmissions.list(courseId, courseWorkId, states: ["TURNED_IN"])`.
+- Submitted date extraction from submission state history, falling back to update time if no state timestamp is returned.
 - Report rows now include turned-in submissions for teacher-owned assignments when both assigned grade and draft grade are unset.
+- Report rows sort newest submitted first by default, and main-window table columns are sortable.
+- Main-window rows default to the current submitted year, with a compact year selector for multiple years or all years.
 - Student names/emails are resolved from class rosters.
 - The report builder keys coursework by class and work id so matching cannot cross between classes.
-- Status and filter layout were tightened to avoid the debug overflow stripe seen with long account/class text.
+- Status/filter/action layout was tightened to avoid the debug overflow stripe seen in compact windows.
+- Class dropdowns now use expanded/ellipsized selected text, and compact action buttons use shorter labels below narrow widths.
+- Widget coverage includes a compact filter layout regression test with a long class name.
 - Course dropdown population from active classes.
 - Shared report controller used by the tray and main window.
 - Tray "Check Now" runs real refresh. Startup and periodic background refresh run only when signed in and automatic checking is enabled.
@@ -39,7 +45,7 @@ Last verification:
 
 - `dart format lib test` - passed.
 - `flutter analyze` - passed.
-- `flutter test` - passed.
+- `flutter test` - passed, including compact layout regression coverage.
 - `flutter build macos` - passed.
 
 Still pending:
@@ -48,6 +54,7 @@ Still pending:
 - Runtime validation of CSV export once real submission rows are available.
 - Runtime validation of the 30-minute background timer.
 - Runtime validation of notification permissions and delivery.
+- Resolve or validate the bundled `objective_c.framework` `arm64`-only caveat for Intel Mac distribution.
 - Windows tray build/runtime verification.
 
 ## Important Constraints

@@ -57,6 +57,9 @@ Expected runtime behavior: app starts hidden in the menu bar, close hides the re
 - `ReportController` owns shared report state for the tray and main window.
 - `ReportController.refreshReport()` loads profile, active teacher classes, class rosters, teacher-owned assignments, and turned-in submissions.
 - `ReportService` must still key coursework by both class id and coursework id before matching submissions.
+- Submitted date should come from `TURNED_IN` state history when available and should drive default row ordering.
+- The main table should keep sortable columns and default to the current submitted year, with multi-year selection available.
+- Compact desktop widths must not show Flutter overflow stripes. Prefer ellipsized dropdown text, shorter action labels, and regression widget tests.
 - Tray "Check Now" must call `ReportController.refreshReport()`.
 - Tray "Export CSV" must call `ReportController.exportCsv()` so it refreshes first when no report has loaded.
 - Main-window CSV export should only be enabled when the current filtered rows list is non-empty.

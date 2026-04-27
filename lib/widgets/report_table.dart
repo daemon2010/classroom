@@ -4,15 +4,32 @@ import "package:url_launcher/url_launcher.dart";
 
 import "../models/classroom_models.dart";
 
+enum ReportSortColumn {
+  student,
+  email,
+  course,
+  subject,
+  assignment,
+  state,
+  late,
+  submitted,
+}
+
 class ReportTable extends StatelessWidget {
   const ReportTable({
     required this.rows,
+    required this.sortColumn,
+    required this.sortAscending,
+    required this.onSort,
     this.showStudentEmailColumn = true,
     this.showLateColumn = true,
     super.key,
   });
 
   final List<UngradedSubmissionReportRow> rows;
+  final ReportSortColumn sortColumn;
+  final bool sortAscending;
+  final void Function(ReportSortColumn column, bool ascending) onSort;
   final bool showStudentEmailColumn;
   final bool showLateColumn;
 
@@ -28,7 +45,41 @@ class ReportTable extends StatelessWidget {
       );
     }
 
-    final dateFormat = DateFormat("MMM d, HH:mm");
+    final dateFormat = DateFormat("MMM d, yyyy HH:mm");
+    var columnIndex = 0;
+    int? sortColumnIndex;
+
+    DataColumn sortableColumn(String label, ReportSortColumn column) {
+      final currentIndex = columnIndex;
+      columnIndex += 1;
+      if (sortColumn == column) {
+        sortColumnIndex = currentIndex;
+      }
+
+      return DataColumn(
+        label: Text(label),
+        onSort: (_, ascending) => onSort(column, ascending),
+      );
+    }
+
+    DataColumn plainColumn(String label) {
+      columnIndex += 1;
+      return DataColumn(label: Text(label));
+    }
+
+    final columns = [
+      sortableColumn("Student", ReportSortColumn.student),
+      if (showStudentEmailColumn)
+        sortableColumn("Email", ReportSortColumn.email),
+      sortableColumn("Class", ReportSortColumn.course),
+      sortableColumn("Subject", ReportSortColumn.subject),
+      sortableColumn("Assignment", ReportSortColumn.assignment),
+      sortableColumn("State", ReportSortColumn.state),
+      if (showLateColumn) sortableColumn("Late", ReportSortColumn.late),
+      sortableColumn("Submitted", ReportSortColumn.submitted),
+      plainColumn("Submission"),
+      plainColumn("Assignment"),
+    ];
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -41,23 +92,13 @@ class ReportTable extends StatelessWidget {
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: DataTable(
+              sortColumnIndex: sortColumnIndex,
+              sortAscending: sortAscending,
               headingRowHeight: 42,
               dataRowMinHeight: 44,
               dataRowMaxHeight: 58,
               columnSpacing: 22,
-              columns: [
-                const DataColumn(label: Text("Student")),
-                if (showStudentEmailColumn)
-                  const DataColumn(label: Text("Email")),
-                const DataColumn(label: Text("Class")),
-                const DataColumn(label: Text("Subject")),
-                const DataColumn(label: Text("Assignment")),
-                const DataColumn(label: Text("State")),
-                if (showLateColumn) const DataColumn(label: Text("Late")),
-                const DataColumn(label: Text("Updated")),
-                const DataColumn(label: Text("Submission")),
-                const DataColumn(label: Text("Assignment")),
-              ],
+              columns: columns,
               rows: [
                 for (final row in rows)
                   DataRow(
@@ -73,7 +114,14 @@ class ReportTable extends StatelessWidget {
                       DataCell(Text(_formatState(row.submissionState))),
                       if (showLateColumn)
                         DataCell(Text(row.isLate ? "Yes" : "No")),
-                      DataCell(Text(_formatDate(dateFormat, row.updatedAt))),
+                      DataCell(
+                        Text(
+                          _formatDate(
+                            dateFormat,
+                            row.submittedAt ?? row.updatedAt,
+                          ),
+                        ),
+                      ),
                       DataCell(_OpenButton(url: row.submissionUrl)),
                       DataCell(_OpenButton(url: row.assignmentUrl)),
                     ],

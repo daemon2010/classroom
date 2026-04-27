@@ -153,6 +153,7 @@ class ClassroomSubmission {
     this.studentEmail,
     this.assignedGrade,
     this.draftGrade,
+    this.submittedAt,
     this.updateTime,
     this.submissionUrl,
     this.late,
@@ -167,6 +168,7 @@ class ClassroomSubmission {
   final String? studentEmail;
   final double? assignedGrade;
   final double? draftGrade;
+  final DateTime? submittedAt;
   final DateTime? updateTime;
   final String? submissionUrl;
   final bool? late;
@@ -201,6 +203,7 @@ class UngradedSubmissionReportRow {
     this.classSection,
     this.subject,
     this.dueDate,
+    this.submittedAt,
     this.updatedAt,
     this.createdAt,
     this.maxPoints,
@@ -221,6 +224,7 @@ class UngradedSubmissionReportRow {
   final String? classSection;
   final String? subject;
   final DateTime? dueDate;
+  final DateTime? submittedAt;
   final DateTime? updatedAt;
   final DateTime? createdAt;
   final double? maxPoints;

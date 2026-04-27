@@ -24,6 +24,9 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _selectedCourseId;
   String _searchQuery = "";
   bool _onlyTurnedIn = true;
+  late Set<int> _selectedSubmittedYears;
+  ReportSortColumn _sortColumn = ReportSortColumn.submitted;
+  bool _sortAscending = false;
 
   @override
   void initState() {
@@ -32,6 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final settings = widget.services.settings.settings;
     _selectedCourseId = settings.lastSelectedCourseId;
     _onlyTurnedIn = settings.onlyTurnedIn;
+    _selectedSubmittedYears = {DateTime.now().year};
     _controller.addListener(_handleControllerChanged);
     widget.services.settings.addListener(_handleSettingsChanged);
   }
@@ -63,7 +67,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final filteredRows = _filteredRows(_controller.snapshot.rows);
+    final availableSubmittedYears = _availableSubmittedYears(
+      _controller.snapshot.rows,
+    );
+    final filteredRows = _sortedRows(_filteredRows(_controller.snapshot.rows));
     final filteredSummary = _summaryFor(filteredRows);
     final isSignedIn = _controller.isSignedIn;
     final lastError = _controller.lastError;
@@ -82,10 +89,6 @@ class _HomeScreenState extends State<HomeScreen> {
               lastChecked: _controller.lastChecked,
               ungradedCount: filteredRows.length,
             ),
-            if (!isSignedIn) ...[
-              const SizedBox(height: 10),
-              const _ConnectHint(),
-            ],
             if (lastError != null && lastError.isNotEmpty) ...[
               const SizedBox(height: 10),
               _ErrorHint(message: lastError),
@@ -106,6 +109,8 @@ class _HomeScreenState extends State<HomeScreen> {
               selectedCourseId: _selectedCourseId,
               onlyTurnedIn: _onlyTurnedIn,
               searchQuery: _searchQuery,
+              availableSubmittedYears: availableSubmittedYears,
+              selectedSubmittedYears: _selectedSubmittedYears,
               onCourseChanged: (courseId) {
                 setState(() {
                   _selectedCourseId = courseId;
@@ -125,6 +130,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   _searchQuery = value;
                 });
               },
+              onSubmittedYearsChanged: (years) {
+                setState(() {
+                  _selectedSubmittedYears = years;
+                });
+              },
             ),
             const SizedBox(height: 12),
             SummaryCards(summary: filteredSummary),
@@ -132,6 +142,9 @@ class _HomeScreenState extends State<HomeScreen> {
             Expanded(
               child: ReportTable(
                 rows: filteredRows,
+                sortColumn: _sortColumn,
+                sortAscending: _sortAscending,
+                onSort: _handleSortChanged,
                 showStudentEmailColumn: settings.showStudentEmailColumn,
                 showLateColumn: settings.showLateColumn,
               ),
@@ -208,6 +221,12 @@ class _HomeScreenState extends State<HomeScreen> {
             return false;
           }
 
+          final submittedYear = _submittedDate(row)?.toLocal().year;
+          if (submittedYear == null ||
+              !_selectedSubmittedYears.contains(submittedYear)) {
+            return false;
+          }
+
           if (query.isEmpty) {
             return true;
           }
@@ -223,6 +242,128 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         })
         .toList(growable: false);
+  }
+
+  List<UngradedSubmissionReportRow> _sortedRows(
+    List<UngradedSubmissionReportRow> rows,
+  ) {
+    final sorted = rows.toList(growable: false);
+    sorted.sort((a, b) => _compareRows(a, b));
+    return sorted;
+  }
+
+  int _compareRows(
+    UngradedSubmissionReportRow a,
+    UngradedSubmissionReportRow b,
+  ) {
+    final result = switch (_sortColumn) {
+      ReportSortColumn.student => _compareText(
+        a.studentName,
+        b.studentName,
+        ascending: _sortAscending,
+      ),
+      ReportSortColumn.email => _compareText(
+        a.studentEmail,
+        b.studentEmail,
+        ascending: _sortAscending,
+      ),
+      ReportSortColumn.course => _compareText(
+        a.courseName,
+        b.courseName,
+        ascending: _sortAscending,
+      ),
+      ReportSortColumn.subject => _compareText(
+        a.subject,
+        b.subject,
+        ascending: _sortAscending,
+      ),
+      ReportSortColumn.assignment => _compareText(
+        a.assignmentTitle,
+        b.assignmentTitle,
+        ascending: _sortAscending,
+      ),
+      ReportSortColumn.state => _compareText(
+        _stateLabel(a.submissionState),
+        _stateLabel(b.submissionState),
+        ascending: _sortAscending,
+      ),
+      ReportSortColumn.late => _compareBool(
+        a.isLate,
+        b.isLate,
+        ascending: _sortAscending,
+      ),
+      ReportSortColumn.submitted => _compareDate(
+        _submittedDate(a),
+        _submittedDate(b),
+        ascending: _sortAscending,
+      ),
+    };
+
+    if (result != 0) {
+      return result;
+    }
+
+    return _compareDate(_submittedDate(a), _submittedDate(b), ascending: false);
+  }
+
+  int _compareText(String? a, String? b, {required bool ascending}) {
+    final cleanA = a?.trim().toLowerCase();
+    final cleanB = b?.trim().toLowerCase();
+    final aEmpty = cleanA == null || cleanA.isEmpty;
+    final bEmpty = cleanB == null || cleanB.isEmpty;
+    if (aEmpty && bEmpty) {
+      return 0;
+    }
+    if (aEmpty) {
+      return 1;
+    }
+    if (bEmpty) {
+      return -1;
+    }
+    final result = cleanA.compareTo(cleanB);
+    return ascending ? result : -result;
+  }
+
+  int _compareBool(bool a, bool b, {required bool ascending}) {
+    if (a == b) {
+      return 0;
+    }
+    final result = a ? 1 : -1;
+    return ascending ? result : -result;
+  }
+
+  int _compareDate(DateTime? a, DateTime? b, {required bool ascending}) {
+    if (a == null && b == null) {
+      return 0;
+    }
+    if (a == null) {
+      return 1;
+    }
+    if (b == null) {
+      return -1;
+    }
+    return ascending ? a.compareTo(b) : b.compareTo(a);
+  }
+
+  DateTime? _submittedDate(UngradedSubmissionReportRow row) {
+    return row.submittedAt ?? row.updatedAt;
+  }
+
+  List<int> _availableSubmittedYears(List<UngradedSubmissionReportRow> rows) {
+    final years = {
+      DateTime.now().year,
+      for (final row in rows)
+        if (_submittedDate(row) != null) _submittedDate(row)!.toLocal().year,
+    }.toList();
+    years.sort((a, b) => b.compareTo(a));
+    return years;
+  }
+
+  void _handleSortChanged(ReportSortColumn column, bool ascending) {
+    setState(() {
+      _sortColumn = column;
+      _sortAscending = ascending;
+    });
   }
 
   ReportSummary _summaryFor(List<UngradedSubmissionReportRow> rows) {
@@ -248,7 +389,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _exportCsv() async {
     final exportedPath = await _controller.exportCsv(
-      rows: _filteredRows(_controller.snapshot.rows),
+      rows: _sortedRows(_filteredRows(_controller.snapshot.rows)),
       refreshIfNeeded: false,
     );
     if (!mounted) {
@@ -275,6 +416,17 @@ class _HomeScreenState extends State<HomeScreen> {
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
   }
+
+  String _stateLabel(SubmissionState state) {
+    return switch (state) {
+      SubmissionState.newSubmission => "New",
+      SubmissionState.created => "Assigned",
+      SubmissionState.turnedIn => "Turned in",
+      SubmissionState.returned => "Returned",
+      SubmissionState.reclaimedByStudent => "Taken back",
+      SubmissionState.unknown => "Unknown",
+    };
+  }
 }
 
 class _Header extends StatelessWidget {
@@ -298,26 +450,6 @@ class _Header extends StatelessWidget {
           icon: const Icon(Icons.settings_outlined),
         ),
       ],
-    );
-  }
-}
-
-class _ConnectHint extends StatelessWidget {
-  const _ConnectHint();
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: const Padding(
-        padding: EdgeInsets.all(12),
-        child: Text(
-          "Connect your Google account to check ungraded Classroom work.",
-        ),
-      ),
     );
   }
 }
@@ -376,38 +508,62 @@ class _ActionBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: [
-        FilledButton.icon(
-          onPressed: isSignedIn || isLoading ? null : onSignIn,
-          icon: Icon(
-            isSignedIn ? Icons.check_circle_outline : Icons.login_outlined,
-          ),
-          label: Text(isSignedIn ? "Signed in" : "Sign in with Google"),
-        ),
-        FilledButton.tonalIcon(
-          onPressed: isLoading ? null : onCheckNow,
-          icon: isLoading
-              ? const SizedBox.square(
-                  dimension: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.refresh),
-          label: const Text("Check Now"),
-        ),
-        FilledButton.tonalIcon(
-          onPressed: canExport ? onExportCsv : null,
-          icon: const Icon(Icons.download_outlined),
-          label: const Text("Export CSV"),
-        ),
-        OutlinedButton.icon(
-          onPressed: onSettings,
-          icon: const Icon(Icons.settings_outlined),
-          label: const Text("Settings"),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 680;
+
+        return Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            Tooltip(
+              message: isSignedIn ? "Signed in" : "Sign in with Google",
+              child: FilledButton.icon(
+                onPressed: isSignedIn || isLoading ? null : onSignIn,
+                icon: Icon(
+                  isSignedIn
+                      ? Icons.check_circle_outline
+                      : Icons.login_outlined,
+                ),
+                label: Text(
+                  isSignedIn
+                      ? (compact ? "Signed" : "Signed in")
+                      : (compact ? "Sign in" : "Sign in with Google"),
+                ),
+              ),
+            ),
+            Tooltip(
+              message: "Check Now",
+              child: FilledButton.tonalIcon(
+                onPressed: isLoading ? null : onCheckNow,
+                icon: isLoading
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.refresh),
+                label: Text(compact ? "Check" : "Check Now"),
+              ),
+            ),
+            Tooltip(
+              message: "Export CSV",
+              child: FilledButton.tonalIcon(
+                onPressed: canExport ? onExportCsv : null,
+                icon: const Icon(Icons.download_outlined),
+                label: Text(compact ? "Export" : "Export CSV"),
+              ),
+            ),
+            Tooltip(
+              message: "Settings",
+              child: OutlinedButton.icon(
+                onPressed: onSettings,
+                icon: const Icon(Icons.settings_outlined),
+                label: const Text("Settings"),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

@@ -6,6 +6,7 @@ A Flutter desktop tray/menu bar app for checking ungraded Google Classroom submi
 
 - macOS and Windows desktop project files are generated.
 - macOS is configured as a menu bar accessory app with the main window hidden by default.
+- The current macOS release executable builds as universal `x86_64` and `arm64`; one bundled `objective_c.framework` is currently `arm64` only and should be resolved or Intel-tested before distribution.
 - Tray/menu actions open the report, run checks, export CSV, sign in, open settings, and quit through shared app state.
 - If already signed in and automatic checking is enabled, the app runs a background refresh on startup and every 30 minutes.
 - Optional desktop notifications can alert when a background check finds a higher ungraded count.
@@ -13,6 +14,7 @@ A Flutter desktop tray/menu bar app for checking ungraded Google Classroom submi
 - Signed-in access is restored locally on app startup.
 - Google Classroom profile, active teacher course, roster, topic, teacher-owned assignment, and turned-in student submission reads are implemented.
 - Report rows are built from turned-in submissions with no assigned or draft grade.
+- Report rows sort by submitted date by default, table columns are sortable, and the main view defaults to the current submitted year with multi-year selection available.
 - Classroom write operations are not implemented and must stay unwired.
 - CSV export saves UTF-8 CSV through a desktop save dialog with `classroom-ungraded-report.csv` as the default filename.
 - The app stores the last successful count, last notified count, last checked time, last selected class, table column settings, and turned-in filter setting locally.

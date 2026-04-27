@@ -313,7 +313,7 @@ class ClassroomApiService {
           pageToken: pageToken,
           states: const ["TURNED_IN"],
           $fields:
-              "studentSubmissions(id,courseId,courseWorkId,userId,state,assignedGrade,draftGrade,updateTime,alternateLink,late,courseWorkType),nextPageToken",
+              "studentSubmissions(id,courseId,courseWorkId,userId,state,assignedGrade,draftGrade,updateTime,alternateLink,late,courseWorkType,submissionHistory(stateHistory(state,stateTimestamp))),nextPageToken",
         );
 
         for (final submission
@@ -345,6 +345,7 @@ class ClassroomApiService {
               studentEmail: student?.emailAddress,
               assignedGrade: submission.assignedGrade,
               draftGrade: submission.draftGrade,
+              submittedAt: _parseSubmittedAt(submission),
               updateTime: _parseTimestamp(submission.updateTime),
               submissionUrl: submission.alternateLink,
               late: submission.late,
@@ -434,6 +435,30 @@ class ClassroomApiService {
       "RECLAIMED_BY_STUDENT" => SubmissionState.reclaimedByStudent,
       _ => SubmissionState.unknown,
     };
+  }
+
+  DateTime? _parseSubmittedAt(classroom.StudentSubmission submission) {
+    final submittedTimes = <DateTime>[];
+    for (final history
+        in submission.submissionHistory ??
+            const <classroom.SubmissionHistory>[]) {
+      final stateHistory = history.stateHistory;
+      if (stateHistory?.state != "TURNED_IN") {
+        continue;
+      }
+
+      final submittedAt = _parseTimestamp(stateHistory?.stateTimestamp);
+      if (submittedAt != null) {
+        submittedTimes.add(submittedAt);
+      }
+    }
+
+    if (submittedTimes.isEmpty) {
+      return _parseTimestamp(submission.updateTime);
+    }
+
+    submittedTimes.sort((a, b) => b.compareTo(a));
+    return submittedTimes.first;
   }
 
   String _studentDisplayName(ClassroomStudent? student) {

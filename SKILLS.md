@@ -35,6 +35,7 @@
 - Use `ClassroomApiService.listCourseTopics(courseId)` for topic names.
 - Use `ClassroomApiService.listMyAssignments(courseId: ..., myUserId: ...)` for assignment coursework.
 - Use `ClassroomApiService.listStudentSubmissions(courseId: ..., courseWorkId: ..., studentsById: ...)` for paginated turned-in submission reads.
+- Use `TURNED_IN` state history timestamps as submitted dates when Google Classroom returns them.
 - Never bypass the `creatorUserId == myProfile.id` filter when loading assignments.
 - Keep write-capable scope usage logically read-only.
 
@@ -42,6 +43,11 @@
 
 - Build report rows only from coursework created by the authenticated teacher.
 - Report rows should include only turned-in submissions where both assigned grade and draft grade are unset.
+- Default report/table ordering should be newest submitted first.
+- Main-window filtering should default to the current submitted year and allow multi-year selection.
+- Table columns should stay sortable when columns are visible.
+- Compact controls should use ellipsis/expanded dropdowns and shorter button labels instead of overflowing.
+- Add widget tests for compact layouts when fixing UI overflow issues.
 - Key coursework matching by both class id and coursework id.
 - Use `ReportController.refreshReport()` for Check Now, startup refresh, and refresh-before-export.
 - Gate startup and periodic background refresh with `SettingsService.settings.autoCheckEnabled`.
