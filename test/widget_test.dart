@@ -28,9 +28,12 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text("Classroom Ungraded Checker"), findsOneWidget);
-    expect(find.textContaining("Connect your Google account"), findsWidgets);
-    expect(find.text("No ungraded Classroom work to show."), findsOneWidget);
+    expect(find.text("Перевірка неоцінених робіт Classroom"), findsOneWidget);
+    expect(find.textContaining("Підключіть Google-акаунт"), findsWidgets);
+    expect(
+      find.text("Немає неоцінених робіт Classroom для показу."),
+      findsOneWidget,
+    );
   });
 
   testWidgets("uses the selected interface language", (
@@ -38,7 +41,7 @@ void main() {
   ) async {
     SharedPreferences.setMockInitialValues({});
     final services = _testServices();
-    await services.settings.setInterfaceLanguageCode("uk");
+    await services.settings.setInterfaceLanguageCode("en");
 
     await tester.pumpWidget(
       ClassroomUngradedCheckerApp(
@@ -49,8 +52,8 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text("Перевірка неоцінених робіт Classroom"), findsOneWidget);
-    expect(find.textContaining("Підключіть Google-акаунт"), findsWidgets);
+    expect(find.text("Classroom Ungraded Checker"), findsOneWidget);
+    expect(find.textContaining("Connect your Google account"), findsWidgets);
   });
 
   testWidgets("course filter stays compact without layout overflow", (
@@ -83,14 +86,9 @@ void main() {
                 ),
               ],
               selectedCourseId: "course-1",
-              onlyTurnedIn: true,
               searchQuery: "",
-              availableSubmittedYears: const [2026, 2025],
-              selectedSubmittedYears: const {2026},
               onCourseChanged: (_) {},
-              onOnlyTurnedInChanged: (_) {},
               onSearchChanged: (_) {},
-              onSubmittedYearsChanged: (_) {},
             ),
           ),
         ),
@@ -101,7 +99,7 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.textContaining("Very long classroom name"), findsOneWidget);
-    expect(find.text("Year: 2026"), findsOneWidget);
+    expect(find.text("Search"), findsOneWidget);
   });
 }
 

@@ -159,6 +159,7 @@ class ClassroomApiService {
   Future<List<ClassroomAssignment>> listMyAssignments({
     required String courseId,
     required String myUserId,
+    int? assignmentYear,
   }) async {
     final api = await _classroomApi();
     final topics = await listCourseTopics(courseId);
@@ -198,25 +199,29 @@ class ClassroomApiService {
           }
 
           final topicId = work.topicId?.trim();
-          assignments.add(
-            ClassroomAssignment(
-              id: id,
-              courseId: work.courseId ?? courseId,
-              title: title,
-              description: work.description,
-              state: work.state,
-              alternateLink: work.alternateLink,
-              creationTime: _parseTimestamp(work.creationTime),
-              updateTime: _parseTimestamp(work.updateTime),
-              dueDate: _parseDate(work.dueDate),
-              dueTime: _parseTimeOfDay(work.dueTime),
-              topicId: topicId?.isEmpty ?? true ? null : topicId,
-              subjectName: topicId == null ? "" : topicNamesById[topicId] ?? "",
-              creatorUserId: creatorUserId,
-              workType: "ASSIGNMENT",
-              maxPoints: work.maxPoints,
-            ),
+          final assignment = ClassroomAssignment(
+            id: id,
+            courseId: work.courseId ?? courseId,
+            title: title,
+            description: work.description,
+            state: work.state,
+            alternateLink: work.alternateLink,
+            creationTime: _parseTimestamp(work.creationTime),
+            updateTime: _parseTimestamp(work.updateTime),
+            dueDate: _parseDate(work.dueDate),
+            dueTime: _parseTimeOfDay(work.dueTime),
+            topicId: topicId?.isEmpty ?? true ? null : topicId,
+            subjectName: topicId == null ? "" : topicNamesById[topicId] ?? "",
+            creatorUserId: creatorUserId,
+            workType: "ASSIGNMENT",
+            maxPoints: work.maxPoints,
           );
+          if (assignmentYear != null &&
+              !_matchesAssignmentYear(assignment, assignmentYear)) {
+            continue;
+          }
+
+          assignments.add(assignment);
         }
 
         pageToken = response.nextPageToken;
@@ -424,6 +429,14 @@ class ClassroomApiService {
       seconds: seconds,
       microseconds: nanos ~/ 1000,
     );
+  }
+
+  bool _matchesAssignmentYear(ClassroomAssignment assignment, int year) {
+    return [
+      assignment.dueAt,
+      assignment.creationTime,
+      assignment.updateTime,
+    ].whereType<DateTime>().any((value) => value.toLocal().year == year);
   }
 
   SubmissionState _parseSubmissionState(String? value) {

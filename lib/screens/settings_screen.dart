@@ -1,3 +1,5 @@
+import "dart:async";
+
 import "package:flutter/material.dart";
 
 import "../app.dart";
@@ -55,14 +57,41 @@ class SettingsScreen extends StatelessWidget {
                   },
                 ),
               ),
-              SwitchListTile(
-                secondary: const Icon(Icons.check_circle_outline),
-                title: Text(l10n.onlyTurnedInTitle),
-                subtitle: Text(l10n.onlyTurnedInSubtitle),
-                value: current.onlyTurnedIn,
-                onChanged: (value) {
-                  settings.setOnlyTurnedIn(value);
-                },
+              ListTile(
+                leading: const Icon(Icons.calendar_month_outlined),
+                title: Text(l10n.displayInfoFor),
+                subtitle: Text(
+                  current.displayAllYears ? l10n.allYears : l10n.currentYear,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsetsDirectional.only(
+                  start: 56,
+                  end: 16,
+                  bottom: 8,
+                ),
+                child: DropdownButtonFormField<bool>(
+                  initialValue: current.displayAllYears,
+                  isExpanded: true,
+                  items: [
+                    DropdownMenuItem(
+                      value: false,
+                      child: Text(l10n.currentYear),
+                    ),
+                    DropdownMenuItem(value: true, child: Text(l10n.allYears)),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      unawaited(
+                        settings
+                            .setDisplayAllYears(value)
+                            .then(
+                              (_) => services.reportController.refreshReport(),
+                            ),
+                      );
+                    }
+                  },
+                ),
               ),
               SwitchListTile(
                 secondary: const Icon(Icons.sync_outlined),
@@ -72,6 +101,37 @@ class SettingsScreen extends StatelessWidget {
                 onChanged: (value) {
                   settings.setAutoCheckEnabled(value);
                 },
+              ),
+              ListTile(
+                enabled: current.autoCheckEnabled,
+                leading: const Icon(Icons.timer_outlined),
+                title: Text(l10n.refreshInterval),
+                subtitle: Text(l10n.refreshIntervalSubtitle),
+              ),
+              Padding(
+                padding: const EdgeInsetsDirectional.only(
+                  start: 56,
+                  end: 16,
+                  bottom: 8,
+                ),
+                child: DropdownButtonFormField<int>(
+                  initialValue: current.refreshIntervalMinutes,
+                  isExpanded: true,
+                  items: [
+                    for (final minutes in settings.refreshIntervalOptions)
+                      DropdownMenuItem(
+                        value: minutes,
+                        child: Text(l10n.everyMinutes(minutes)),
+                      ),
+                  ],
+                  onChanged: current.autoCheckEnabled
+                      ? (value) {
+                          if (value != null) {
+                            settings.setRefreshIntervalMinutes(value);
+                          }
+                        }
+                      : null,
+                ),
               ),
               SwitchListTile(
                 secondary: const Icon(Icons.notifications_outlined),

@@ -13,6 +13,36 @@ class AppDelegate: FlutterAppDelegate {
   }
 }
 
+class ClassroomDockBridge: NSObject {
+  static let shared = ClassroomDockBridge()
+
+  private var channel: FlutterMethodChannel?
+
+  func register(messenger: FlutterBinaryMessenger) {
+    if channel != nil {
+      return
+    }
+
+    channel = FlutterMethodChannel(name: "classroom_dock", binaryMessenger: messenger)
+    channel?.setMethodCallHandler { call, result in
+      switch call.method {
+      case "setDockVisible":
+        let args = call.arguments as? [String: Any]
+        let visible = args?["visible"] as? Bool ?? false
+        DispatchQueue.main.async {
+          NSApp.setActivationPolicy(visible ? .regular : .accessory)
+          if visible {
+            NSApp.activate(ignoringOtherApps: true)
+          }
+          result(true)
+        }
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+  }
+}
+
 class ClassroomNotificationBridge: NSObject, UNUserNotificationCenterDelegate {
   static let shared = ClassroomNotificationBridge()
 

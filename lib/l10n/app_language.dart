@@ -12,12 +12,12 @@ class AppLanguage {
   static String normalizeSetting(String? value) {
     final clean = value?.trim().toLowerCase();
     if (clean == null || clean.isEmpty) {
-      return system;
+      return ukrainian;
     }
     if (settingsValues.contains(clean)) {
       return clean;
     }
-    return system;
+    return ukrainian;
   }
 
   static String resolve(String setting, String systemLanguageCode) {
@@ -29,6 +29,6 @@ class AppLanguage {
     final cleanSystemLanguage = systemLanguageCode.trim().toLowerCase();
     return supportedLocales.contains(cleanSystemLanguage)
         ? cleanSystemLanguage
-        : english;
+        : ukrainian;
   }
 }

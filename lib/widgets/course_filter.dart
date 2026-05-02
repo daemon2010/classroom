@@ -7,27 +7,17 @@ class CourseFilter extends StatelessWidget {
   const CourseFilter({
     required this.courses,
     required this.selectedCourseId,
-    required this.onlyTurnedIn,
     required this.searchQuery,
-    required this.availableSubmittedYears,
-    required this.selectedSubmittedYears,
     required this.onCourseChanged,
-    required this.onOnlyTurnedInChanged,
     required this.onSearchChanged,
-    required this.onSubmittedYearsChanged,
     super.key,
   });
 
   final List<ClassroomCourse> courses;
   final String? selectedCourseId;
-  final bool onlyTurnedIn;
   final String searchQuery;
-  final List<int> availableSubmittedYears;
-  final Set<int> selectedSubmittedYears;
   final ValueChanged<String?> onCourseChanged;
-  final ValueChanged<bool> onOnlyTurnedInChanged;
   final ValueChanged<String> onSearchChanged;
-  final ValueChanged<Set<int>> onSubmittedYearsChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -99,25 +89,6 @@ class CourseFilter extends StatelessWidget {
                 onChanged: onSearchChanged,
               ),
             ),
-            _YearSelectorButton(
-              availableYears: availableSubmittedYears,
-              selectedYears: selectedSubmittedYears,
-              onChanged: onSubmittedYearsChanged,
-            ),
-            ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: constraints.maxWidth),
-              child: FilterChip(
-                selected: onlyTurnedIn,
-                onSelected: onOnlyTurnedInChanged,
-                avatar: Icon(
-                  onlyTurnedIn
-                      ? Icons.check_circle_outline
-                      : Icons.radio_button_unchecked,
-                  size: 18,
-                ),
-                label: Text(l10n.onlyTurnedInTitle),
-              ),
-            ),
           ],
         );
       },
@@ -130,111 +101,6 @@ class CourseFilter extends StatelessWidget {
       return course.name;
     }
     return "${course.name} - $section";
-  }
-}
-
-class _YearSelectorButton extends StatelessWidget {
-  const _YearSelectorButton({
-    required this.availableYears,
-    required this.selectedYears,
-    required this.onChanged,
-  });
-
-  final List<int> availableYears;
-  final Set<int> selectedYears;
-  final ValueChanged<Set<int>> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    return OutlinedButton.icon(
-      onPressed: () => _openYearDialog(context),
-      icon: const Icon(Icons.calendar_month_outlined),
-      label: Text(_buttonLabel(l10n)),
-    );
-  }
-
-  Future<void> _openYearDialog(BuildContext context) async {
-    final l10n = context.l10n;
-    var draftYears = selectedYears.isEmpty
-        ? {DateTime.now().year}
-        : {...selectedYears};
-
-    final selected = await showDialog<Set<int>>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: Text(l10n.submittedYears),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    for (final year in availableYears)
-                      CheckboxListTile(
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(year.toString()),
-                        value: draftYears.contains(year),
-                        onChanged: (checked) {
-                          setDialogState(() {
-                            final next = {...draftYears};
-                            if (checked ?? false) {
-                              next.add(year);
-                            } else if (next.length > 1) {
-                              next.remove(year);
-                            }
-                            draftYears = next;
-                          });
-                        },
-                      ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    final currentYear = DateTime.now().year;
-                    Navigator.of(context).pop({currentYear});
-                  },
-                  child: Text(l10n.currentYear),
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop(availableYears.toSet());
-                  },
-                  child: Text(l10n.allYears),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.of(context).pop(draftYears),
-                  child: Text(l10n.apply),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-
-    if (selected != null && selected.isNotEmpty) {
-      onChanged(selected);
-    }
-  }
-
-  String _buttonLabel(AppLocalizations l10n) {
-    final currentYear = DateTime.now().year;
-    if (selectedYears.length == availableYears.length &&
-        availableYears.every(selectedYears.contains)) {
-      return l10n.yearsAll;
-    }
-
-    if (selectedYears.length == 1 && selectedYears.contains(currentYear)) {
-      return l10n.yearLabel(currentYear);
-    }
-
-    final sortedYears = selectedYears.toList()..sort((a, b) => b.compareTo(a));
-    return l10n.yearsList(sortedYears.join(", "));
   }
 }
 

@@ -1,6 +1,7 @@
 import "dart:async";
 import "dart:io";
 
+import "package:flutter/services.dart";
 import "package:intl/intl.dart";
 import "package:tray_manager/tray_manager.dart";
 import "package:window_manager/window_manager.dart";
@@ -9,12 +10,15 @@ import "../l10n/app_language.dart";
 import "../l10n/app_localizations.dart";
 
 class TrayService with TrayListener {
+  static const _dockChannel = MethodChannel("classroom_dock");
+
   Future<void> init({
     required Future<void> Function() onOpenReport,
     required Future<void> Function() onCheckNow,
     required Future<void> Function() onExportCsv,
     required Future<void> Function() onSignInWithGoogle,
     required Future<void> Function() onOpenSettings,
+    required String languageCode,
   }) async {
     _onOpenReport = onOpenReport;
     _onCheckNow = onCheckNow;
@@ -25,7 +29,7 @@ class TrayService with TrayListener {
     trayManager.addListener(this);
     await _setTrayIcon(attention: false);
     await trayManager.setToolTip(
-      AppLocalizations.forLanguageCode(AppLanguage.english).appTitle,
+      AppLocalizations.forLanguageCode(languageCode).appTitle,
     );
     await updateTrayMenu(
       ungradedCount: 0,
@@ -35,6 +39,7 @@ class TrayService with TrayListener {
   }
 
   Future<void> showMainWindow() async {
+    await _setDockVisible(true);
     if (await windowManager.isMinimized()) {
       await windowManager.restore();
     }
@@ -47,6 +52,7 @@ class TrayService with TrayListener {
       return;
     }
     await windowManager.hide();
+    await _setDockVisible(false);
   }
 
   Future<void> quitApp() async {
@@ -288,5 +294,19 @@ class TrayService with TrayListener {
       return;
     }
     unawaited(callback());
+  }
+
+  Future<void> _setDockVisible(bool visible) async {
+    if (!Platform.isMacOS) {
+      return;
+    }
+
+    try {
+      await _dockChannel.invokeMethod<bool>("setDockVisible", {
+        "visible": visible,
+      });
+    } catch (_) {
+      // Dock visibility is a macOS nicety; window behavior should continue.
+    }
   }
 }

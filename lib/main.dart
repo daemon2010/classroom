@@ -69,7 +69,7 @@ Future<void> main() async {
 
   Future<void> updateTrayState() async {
     await trayService.updateTrayMenu(
-      ungradedCount: reportController.ungradedCount,
+      ungradedCount: reportController.visibleUngradedCount,
       lastChecked: reportController.lastChecked,
       signedInName: reportController.signedInName,
       isSignedIn: reportController.isSignedIn,
@@ -142,6 +142,7 @@ Future<void> main() async {
     },
     onSignInWithGoogle: signInFromTray,
     onOpenSettings: () => _showWindow(trayService, navigatorKey, "/settings"),
+    languageCode: _resolvedInterfaceLanguage(settingsService),
   );
 
   await windowManager.waitUntilReadyToShow(windowOptions, () async {

@@ -14,6 +14,7 @@
 - Initialize `tray_manager` with menu actions for report, check, export, sign-in, settings, and quit.
 - Hide the main window on startup.
 - Hide on close; only tray Quit exits.
+- On macOS, make the app Dock-visible while the report window is open and return to menu-bar-only when hidden.
 - Route tray actions through `ReportController` so menu and window state stay in sync.
 - Use a single periodic timer for automatic background checks.
 - Keep desktop notifications isolated behind `NotificationService`.
@@ -44,7 +45,7 @@
 - Build report rows only from coursework created by the authenticated teacher.
 - Report rows should include only turned-in submissions where both assigned grade and draft grade are unset.
 - Default report/table ordering should be newest submitted first.
-- Main-window filtering should default to the current submitted year and allow multi-year selection.
+- Main-window filtering should default to the current submitted year. Settings should choose either current year or all years.
 - Table columns should stay sortable when columns are visible.
 - Compact controls should use ellipsis/expanded dropdowns and shorter button labels instead of overflowing.
 - Add widget tests for compact layouts when fixing UI overflow issues.
@@ -61,11 +62,13 @@
 - Use `ReportController.refreshReport()` for Check Now, startup refresh, and refresh-before-export.
 - Gate startup and periodic background refresh with `SettingsService.settings.autoCheckEnabled`.
 - Rely on `ReportController` in-flight protection to avoid parallel refreshes.
-- Notify on background refresh only when the new ungraded count is higher than the previous count and the last notified count.
+- Notify on background refresh only when the filtered visible count is higher than the previous filtered count and last notified filtered count.
+- Notification counts should follow persisted report filters: remembered class and year display scope. Search text is not part of notification filtering.
+- Reset the filtered notification marker when class or year scope changes.
 - Use `ReportController.exportCsv()` for tray export so it refreshes first when needed.
 - Enable main-window CSV export only when visible report rows exist.
 - Export UTF-8 CSV through `file_selector` with default filename `classroom-ungraded-report.csv`.
 - Use the `csv` package for all CSV field escaping.
-- Store last successful count, last notified count, last checked time, last selected class, turned-in filter, table column settings, and last friendly error in `SettingsService`.
+- Store last successful total/filtered counts, last notified filtered count, last checked time, last selected class, year display scope, table column settings, and last friendly error in `SettingsService`.
 - Keep UI labels teacher-friendly.
 - Avoid teacher-facing technical words: API, OAuth, token, scope, JSON, endpoint.

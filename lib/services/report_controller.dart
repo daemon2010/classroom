@@ -95,6 +95,16 @@ class ReportController extends ChangeNotifier {
     return _lastSuccessfulCount;
   }
 
+  int get visibleUngradedCount {
+    if (!isSignedIn) {
+      return 0;
+    }
+    if (_hasLoadedRows) {
+      return _filteredNotificationCount(_snapshot);
+    }
+    return _settings.settings.lastSuccessfulVisibleCount;
+  }
+
   String? get signedInName {
     final profile = _profile;
     final profileName = profile?.fullName.trim();
@@ -241,9 +251,13 @@ class ReportController extends ChangeNotifier {
     }
 
     try {
-      final hadPreviousCount = _settings.settings.hasLastSuccessfulCount;
-      final previousCount = _lastSuccessfulCount;
-      final lastNotifiedCount = _settings.settings.lastNotifiedCount;
+      final previousVisibleCount = _hasLoadedRows
+          ? _filteredNotificationCount(_snapshot)
+          : _settings.settings.lastSuccessfulVisibleCount;
+      final hadPreviousVisibleCount =
+          _hasLoadedRows || _settings.settings.hasLastSuccessfulVisibleCount;
+      final lastNotifiedVisibleCount =
+          _settings.settings.lastNotifiedVisibleCount;
       final myProfile = await _classroomApi.getMyProfile();
       final courses = await _classroomApi.listTeacherCourses();
       final courseWork = <ClassroomCourseWork>[];
@@ -257,6 +271,9 @@ class ReportController extends ChangeNotifier {
         final assignments = await _classroomApi.listMyAssignments(
           courseId: course.id,
           myUserId: myProfile.id,
+          assignmentYear: _settings.settings.displayAllYears
+              ? null
+              : DateTime.now().year,
         );
         final workItems = assignments
             .map((assignment) => assignment.toCourseWork())
@@ -287,24 +304,26 @@ class ReportController extends ChangeNotifier {
       _hasLoadedRows = true;
       _lastError = null;
       _isRefreshing = false;
+      final visibleCount = _filteredNotificationCount(_snapshot);
       final shouldNotify =
           isBackground &&
           _settings.settings.notifyOnNewUngradedWorks &&
-          hadPreviousCount &&
-          _lastSuccessfulCount > previousCount &&
-          (lastNotifiedCount == null ||
-              _lastSuccessfulCount > lastNotifiedCount);
+          hadPreviousVisibleCount &&
+          visibleCount > previousVisibleCount &&
+          (lastNotifiedVisibleCount == null ||
+              visibleCount > lastNotifiedVisibleCount);
       await _settings.recordSuccessfulCheck(
         count: _lastSuccessfulCount,
+        visibleCount: visibleCount,
         checkedAt: _lastChecked!,
       );
       await _saveCachedReport();
       if (shouldNotify &&
           await _notifications.showNewUngradedWorks(
-            _lastSuccessfulCount,
+            visibleCount,
             languageCode: _resolvedLanguageCode(),
           )) {
-        await _settings.recordNotificationShown(_lastSuccessfulCount);
+        await _settings.recordNotificationShown(visibleCount);
       }
       notifyListeners();
       return true;
@@ -367,6 +386,27 @@ class ReportController extends ChangeNotifier {
     } catch (_) {
       // The live report is still valid if local cache storage fails.
     }
+  }
+
+  int _filteredNotificationCount(ReportSnapshot snapshot) {
+    final settings = _settings.settings;
+    final selectedCourseId = settings.rememberLastSelectedCourse
+        ? settings.lastSelectedCourseId
+        : null;
+    final currentYear = DateTime.now().year;
+
+    return snapshot.rows.where((row) {
+      if (selectedCourseId != null && row.courseId != selectedCourseId) {
+        return false;
+      }
+
+      if (settings.displayAllYears) {
+        return true;
+      }
+
+      final submittedYear = (row.submittedAt ?? row.updatedAt)?.toLocal().year;
+      return submittedYear == currentYear;
+    }).length;
   }
 
   String _resolvedLanguageCode() {

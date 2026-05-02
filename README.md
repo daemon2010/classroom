@@ -6,22 +6,25 @@ A Flutter desktop tray/menu bar app for checking ungraded Google Classroom submi
 
 - macOS and Windows desktop project files are generated.
 - macOS is configured as a menu bar accessory app with the main window hidden by default.
+- Opening the report on macOS makes the app appear in the Dock; hiding the report returns it to menu-bar-only mode.
 - The current macOS release executable builds as universal `x86_64` and `arm64`; one bundled `objective_c.framework` is currently `arm64` only and should be resolved or Intel-tested before distribution.
 - Tray/menu actions open the report, run checks, export CSV, sign in, open settings, and quit through shared app state.
 - If already signed in, the app restores the last successful report from a local cache on startup.
-- If automatic checking is enabled, startup only scans Classroom immediately when the cache is missing or older than the check interval; otherwise the next periodic check handles refresh.
-- Optional desktop notifications can alert when a background check finds a higher ungraded count.
+- If automatic checking is enabled, startup only scans Classroom immediately when the cache is missing or older than the configured check interval; otherwise the next periodic check handles refresh.
+- Optional desktop notifications can alert when a background check finds a higher filtered ungraded count.
 - macOS notifications use a native notification bridge and Settings includes a test notification action.
 - Google browser sign-in is implemented for desktop.
 - Signed-in access is restored locally on app startup.
 - Google Classroom profile, active teacher course, roster, topic, teacher-owned assignment, and turned-in student submission reads are implemented.
 - Report rows are built from turned-in submissions with no assigned or draft grade.
-- Report rows sort by submitted date by default, table columns are sortable, and the main view defaults to the current submitted year with multi-year selection available.
+- Report rows sort by submitted date by default, table columns are sortable, and Settings controls whether the app displays current-year work or all years.
 - The main status area includes a live `Now` clock and updates last-checked age while the window is open.
-- Interface localization supports English, Ukrainian, and Russian. The default follows the operating system language, and Settings can override the interface language.
+- Interface localization supports Ukrainian, English, and Russian. Ukrainian is the default, Settings can override the interface language, and the "System language" option follows the operating system when supported.
+- Runtime window/tray titles and notification app name use teacher-friendly localized names, while native app metadata avoids `classroom_ungraded_checker`.
+- The macOS Dock icon and Windows taskbar icon use the same transparent artwork as the normal tray icon.
 - Classroom write operations are not implemented and must stay unwired.
 - CSV export saves UTF-8 CSV through a desktop save dialog with `classroom-ungraded-report.csv` as the default filename.
-- The app stores the last successful count, last notified count, last checked time, last selected class, table column settings, and turned-in filter setting locally.
+- The app stores the automatic check interval, last successful total and filtered counts, last notified filtered count, last checked time, last selected class, year display scope, and table column settings locally.
 - The app also stores a local report cache in the app support directory. It contains report data such as student names/emails and links, but no Google credentials.
 
 ## Core report rule

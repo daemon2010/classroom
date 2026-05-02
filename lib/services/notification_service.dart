@@ -22,7 +22,9 @@ class NotificationService {
     }
 
     try {
-      await localNotifier.setup(appName: "Classroom Ungraded Checker");
+      await localNotifier.setup(
+        appName: "Перевірка неоцінених робіт Classroom",
+      );
       _isReady = true;
     } catch (_) {
       _isReady = false;

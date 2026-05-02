@@ -14,9 +14,12 @@ class AppSettings {
     required this.showStudentEmailColumn,
     required this.showLateColumn,
     required this.lastSuccessfulCount,
+    required this.lastSuccessfulVisibleCount,
     required this.hasLastSuccessfulCount,
-    required this.onlyTurnedIn,
+    required this.hasLastSuccessfulVisibleCount,
+    required this.displayAllYears,
     this.lastNotifiedCount,
+    this.lastNotifiedVisibleCount,
     this.lastCheckedAt,
     this.lastSelectedCourseId,
     this.lastError,
@@ -31,11 +34,14 @@ class AppSettings {
   final bool showStudentEmailColumn;
   final bool showLateColumn;
   final int lastSuccessfulCount;
+  final int lastSuccessfulVisibleCount;
   final bool hasLastSuccessfulCount;
+  final bool hasLastSuccessfulVisibleCount;
   final DateTime? lastCheckedAt;
   final String? lastSelectedCourseId;
-  final bool onlyTurnedIn;
+  final bool displayAllYears;
   final int? lastNotifiedCount;
+  final int? lastNotifiedVisibleCount;
   final String? lastError;
 
   AppSettings copyWith({
@@ -48,11 +54,14 @@ class AppSettings {
     bool? showStudentEmailColumn,
     bool? showLateColumn,
     int? lastSuccessfulCount,
+    int? lastSuccessfulVisibleCount,
     bool? hasLastSuccessfulCount,
+    bool? hasLastSuccessfulVisibleCount,
     DateTime? lastCheckedAt,
     Object? lastSelectedCourseId = _unchanged,
-    bool? onlyTurnedIn,
+    bool? displayAllYears,
     Object? lastNotifiedCount = _unchanged,
+    Object? lastNotifiedVisibleCount = _unchanged,
     Object? lastError = _unchanged,
   }) {
     return AppSettings(
@@ -71,16 +80,23 @@ class AppSettings {
           showStudentEmailColumn ?? this.showStudentEmailColumn,
       showLateColumn: showLateColumn ?? this.showLateColumn,
       lastSuccessfulCount: lastSuccessfulCount ?? this.lastSuccessfulCount,
+      lastSuccessfulVisibleCount:
+          lastSuccessfulVisibleCount ?? this.lastSuccessfulVisibleCount,
       hasLastSuccessfulCount:
           hasLastSuccessfulCount ?? this.hasLastSuccessfulCount,
+      hasLastSuccessfulVisibleCount:
+          hasLastSuccessfulVisibleCount ?? this.hasLastSuccessfulVisibleCount,
       lastCheckedAt: lastCheckedAt ?? this.lastCheckedAt,
       lastSelectedCourseId: identical(lastSelectedCourseId, _unchanged)
           ? this.lastSelectedCourseId
           : lastSelectedCourseId as String?,
-      onlyTurnedIn: onlyTurnedIn ?? this.onlyTurnedIn,
+      displayAllYears: displayAllYears ?? this.displayAllYears,
       lastNotifiedCount: identical(lastNotifiedCount, _unchanged)
           ? this.lastNotifiedCount
           : lastNotifiedCount as int?,
+      lastNotifiedVisibleCount: identical(lastNotifiedVisibleCount, _unchanged)
+          ? this.lastNotifiedVisibleCount
+          : lastNotifiedVisibleCount as int?,
       lastError: identical(lastError, _unchanged)
           ? this.lastError
           : lastError as String?,
@@ -89,7 +105,9 @@ class AppSettings {
 }
 
 class SettingsService extends ChangeNotifier {
+  static const _refreshIntervalOptions = [5, 10, 15, 30, 60];
   static const _interfaceLanguageCodeKey = "interfaceLanguageCode";
+  static const _refreshIntervalMinutesKey = "refreshIntervalMinutes";
   static const _includeArchivedCoursesKey = "includeArchivedCourses";
   static const _autoCheckEnabledKey = "autoCheckEnabled";
   static const _notifyOnNewUngradedWorksKey = "notifyOnNewUngradedWorks";
@@ -97,14 +115,16 @@ class SettingsService extends ChangeNotifier {
   static const _showStudentEmailColumnKey = "showStudentEmailColumn";
   static const _showLateColumnKey = "showLateColumn";
   static const _lastSuccessfulCountKey = "lastSuccessfulCount";
+  static const _lastSuccessfulVisibleCountKey = "lastSuccessfulVisibleCount";
   static const _lastCheckedAtKey = "lastCheckedAt";
   static const _lastSelectedCourseIdKey = "lastSelectedCourseId";
-  static const _onlyTurnedInKey = "onlyTurnedIn";
+  static const _displayAllYearsKey = "displayAllYears";
   static const _lastNotifiedCountKey = "lastNotifiedCount";
+  static const _lastNotifiedVisibleCountKey = "lastNotifiedVisibleCount";
   static const _lastErrorKey = "lastError";
 
   AppSettings _settings = const AppSettings(
-    interfaceLanguageCode: AppLanguage.system,
+    interfaceLanguageCode: AppLanguage.ukrainian,
     refreshIntervalMinutes: 30,
     includeArchivedCourses: false,
     autoCheckEnabled: true,
@@ -113,11 +133,14 @@ class SettingsService extends ChangeNotifier {
     showStudentEmailColumn: true,
     showLateColumn: true,
     lastSuccessfulCount: 0,
+    lastSuccessfulVisibleCount: 0,
     hasLastSuccessfulCount: false,
-    onlyTurnedIn: true,
+    hasLastSuccessfulVisibleCount: false,
+    displayAllYears: false,
   );
 
   AppSettings get settings => _settings;
+  List<int> get refreshIntervalOptions => _refreshIntervalOptions;
 
   Future<void> init() async {
     final preferences = await SharedPreferences.getInstance();
@@ -125,7 +148,10 @@ class SettingsService extends ChangeNotifier {
       interfaceLanguageCode: AppLanguage.normalizeSetting(
         preferences.getString(_interfaceLanguageCodeKey),
       ),
-      refreshIntervalMinutes: _settings.refreshIntervalMinutes,
+      refreshIntervalMinutes: _normalizeRefreshInterval(
+        preferences.getInt(_refreshIntervalMinutesKey) ??
+            _settings.refreshIntervalMinutes,
+      ),
       includeArchivedCourses:
           preferences.getBool(_includeArchivedCoursesKey) ??
           _settings.includeArchivedCourses,
@@ -146,12 +172,21 @@ class SettingsService extends ChangeNotifier {
       lastSuccessfulCount:
           preferences.getInt(_lastSuccessfulCountKey) ??
           _settings.lastSuccessfulCount,
+      lastSuccessfulVisibleCount:
+          preferences.getInt(_lastSuccessfulVisibleCountKey) ??
+          _settings.lastSuccessfulVisibleCount,
       hasLastSuccessfulCount: preferences.containsKey(_lastSuccessfulCountKey),
+      hasLastSuccessfulVisibleCount: preferences.containsKey(
+        _lastSuccessfulVisibleCountKey,
+      ),
       lastCheckedAt: _parseDateTime(preferences.getString(_lastCheckedAtKey)),
       lastSelectedCourseId: preferences.getString(_lastSelectedCourseIdKey),
-      onlyTurnedIn:
-          preferences.getBool(_onlyTurnedInKey) ?? _settings.onlyTurnedIn,
+      displayAllYears:
+          preferences.getBool(_displayAllYearsKey) ?? _settings.displayAllYears,
       lastNotifiedCount: preferences.getInt(_lastNotifiedCountKey),
+      lastNotifiedVisibleCount: preferences.getInt(
+        _lastNotifiedVisibleCountKey,
+      ),
       lastError: preferences.getString(_lastErrorKey),
     );
   }
@@ -171,6 +206,14 @@ class SettingsService extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setRefreshIntervalMinutes(int value) async {
+    final minutes = _normalizeRefreshInterval(value);
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setInt(_refreshIntervalMinutesKey, minutes);
+    _settings = _settings.copyWith(refreshIntervalMinutes: minutes);
+    notifyListeners();
+  }
+
   Future<void> setNotifyOnNewUngradedWorks(bool value) async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setBool(_notifyOnNewUngradedWorksKey, value);
@@ -186,9 +229,11 @@ class SettingsService extends ChangeNotifier {
       await preferences.remove(_lastSelectedCourseIdKey);
       selectedCourseId = null;
     }
+    await preferences.remove(_lastNotifiedVisibleCountKey);
     _settings = _settings.copyWith(
       rememberLastSelectedCourse: value,
       lastSelectedCourseId: selectedCourseId,
+      lastNotifiedVisibleCount: null,
     );
     notifyListeners();
   }
@@ -219,32 +264,42 @@ class SettingsService extends ChangeNotifier {
     } else {
       await preferences.setString(_lastSelectedCourseIdKey, trimmed);
     }
+    await preferences.remove(_lastNotifiedVisibleCountKey);
 
     _settings = _settings.copyWith(
       lastSelectedCourseId: trimmed == null || trimmed.isEmpty ? null : trimmed,
+      lastNotifiedVisibleCount: null,
     );
     notifyListeners();
   }
 
-  Future<void> setOnlyTurnedIn(bool value) async {
+  Future<void> setDisplayAllYears(bool value) async {
     final preferences = await SharedPreferences.getInstance();
-    await preferences.setBool(_onlyTurnedInKey, value);
-    _settings = _settings.copyWith(onlyTurnedIn: value);
+    await preferences.setBool(_displayAllYearsKey, value);
+    await preferences.remove(_lastNotifiedVisibleCountKey);
+    _settings = _settings.copyWith(
+      displayAllYears: value,
+      lastNotifiedVisibleCount: null,
+    );
     notifyListeners();
   }
 
   Future<void> recordSuccessfulCheck({
     required int count,
+    required int visibleCount,
     required DateTime checkedAt,
   }) async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setInt(_lastSuccessfulCountKey, count);
+    await preferences.setInt(_lastSuccessfulVisibleCountKey, visibleCount);
     await preferences.setString(_lastCheckedAtKey, checkedAt.toIso8601String());
     await preferences.remove(_lastErrorKey);
 
     _settings = _settings.copyWith(
       lastSuccessfulCount: count,
+      lastSuccessfulVisibleCount: visibleCount,
       hasLastSuccessfulCount: true,
+      hasLastSuccessfulVisibleCount: true,
       lastCheckedAt: checkedAt,
       lastError: null,
     );
@@ -253,8 +308,8 @@ class SettingsService extends ChangeNotifier {
 
   Future<void> recordNotificationShown(int count) async {
     final preferences = await SharedPreferences.getInstance();
-    await preferences.setInt(_lastNotifiedCountKey, count);
-    _settings = _settings.copyWith(lastNotifiedCount: count);
+    await preferences.setInt(_lastNotifiedVisibleCountKey, count);
+    _settings = _settings.copyWith(lastNotifiedVisibleCount: count);
     notifyListeners();
   }
 
@@ -278,6 +333,14 @@ class SettingsService extends ChangeNotifier {
       return null;
     }
     return DateTime.tryParse(value);
+  }
+
+  int _normalizeRefreshInterval(int value) {
+    return _refreshIntervalOptions.reduce((currentBest, option) {
+      final currentDistance = (value - currentBest).abs();
+      final optionDistance = (value - option).abs();
+      return optionDistance < currentDistance ? option : currentBest;
+    });
   }
 }
 

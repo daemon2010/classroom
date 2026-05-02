@@ -9,8 +9,8 @@ class AppLocalizations {
   final Locale locale;
 
   static const supportedLocales = [
-    Locale(AppLanguage.english),
     Locale(AppLanguage.ukrainian),
+    Locale(AppLanguage.english),
     Locale(AppLanguage.russian),
   ];
 
@@ -40,10 +40,10 @@ class AppLocalizations {
   String get english => _t("english");
   String get ukrainian => _t("ukrainian");
   String get russian => _t("russian");
-  String get onlyTurnedInTitle => _t("onlyTurnedInTitle");
-  String get onlyTurnedInSubtitle => _t("onlyTurnedInSubtitle");
   String get autoCheckTitle => _t("autoCheckTitle");
   String get autoCheckSubtitle => _t("autoCheckSubtitle");
+  String get refreshInterval => _t("refreshInterval");
+  String get refreshIntervalSubtitle => _t("refreshIntervalSubtitle");
   String get notifyTitle => _t("notifyTitle");
   String get notifySubtitle => _t("notifySubtitle");
   String get sendTestNotification => _t("sendTestNotification");
@@ -99,6 +99,7 @@ class AppLocalizations {
   String get search => _t("search");
   String get searchHint => _t("searchHint");
   String get submittedYears => _t("submittedYears");
+  String get displayInfoFor => _t("displayInfoFor");
   String get currentYear => _t("currentYear");
   String get allYears => _t("allYears");
   String get apply => _t("apply");
@@ -164,6 +165,10 @@ class AppLocalizations {
     return _f("minutesAgo", {"count": minutes.toString()});
   }
 
+  String everyMinutes(int minutes) {
+    return _f("everyMinutes", {"count": minutes.toString()});
+  }
+
   String hoursAgo(int hours) {
     return _f("hoursAgo", {"count": hours.toString()});
   }
@@ -224,10 +229,10 @@ class AppLocalizations {
       "english": "English",
       "ukrainian": "Ukrainian",
       "russian": "Russian",
-      "onlyTurnedInTitle": "Only show works turned in by students",
-      "onlyTurnedInSubtitle": "Hide assigned work that has not been submitted",
-      "autoCheckTitle": "Check automatically every 30 minutes",
+      "autoCheckTitle": "Check automatically",
       "autoCheckSubtitle": "Updates the menu bar count",
+      "refreshInterval": "Check interval",
+      "refreshIntervalSubtitle": "How often automatic checks run",
       "notifyTitle": "Notify when new ungraded works appear",
       "notifySubtitle": "Only when the count increases",
       "sendTestNotification": "Send test notification",
@@ -288,6 +293,7 @@ class AppLocalizations {
       "search": "Search",
       "searchHint": "Student, class, subject, or assignment",
       "submittedYears": "Submitted years",
+      "displayInfoFor": "Display information for",
       "currentYear": "Current year",
       "allYears": "All years",
       "apply": "Apply",
@@ -332,6 +338,7 @@ class AppLocalizations {
       "signedInAsName": "Signed in as: {name}",
       "signedInAsEmail": "Signed in as: {email}",
       "minutesAgo": "{count} min ago",
+      "everyMinutes": "Every {count} minutes",
       "hoursAgo": "{count} hr ago",
       "ungradedWorksCount": "Ungraded works: {count}",
       "lastCheckedValue": "Last checked: {value}",
@@ -351,10 +358,10 @@ class AppLocalizations {
       "english": "Англійська",
       "ukrainian": "Українська",
       "russian": "Російська",
-      "onlyTurnedInTitle": "Показувати лише роботи, здані студентами",
-      "onlyTurnedInSubtitle": "Приховувати призначені, але ще не здані роботи",
-      "autoCheckTitle": "Перевіряти автоматично кожні 30 хвилин",
+      "autoCheckTitle": "Перевіряти автоматично",
       "autoCheckSubtitle": "Оновлює лічильник у меню",
+      "refreshInterval": "Інтервал перевірки",
+      "refreshIntervalSubtitle": "Як часто виконуються автоматичні перевірки",
       "notifyTitle": "Сповіщати про нові неоцінені роботи",
       "notifySubtitle": "Лише коли кількість зростає",
       "sendTestNotification": "Надіслати тестове сповіщення",
@@ -415,6 +422,7 @@ class AppLocalizations {
       "search": "Пошук",
       "searchHint": "Студент, клас, тема або завдання",
       "submittedYears": "Роки здачі",
+      "displayInfoFor": "Показувати інформацію за",
       "currentYear": "Поточний рік",
       "allYears": "Усі роки",
       "apply": "Застосувати",
@@ -461,6 +469,7 @@ class AppLocalizations {
       "signedInAsName": "Вхід виконано: {name}",
       "signedInAsEmail": "Вхід виконано: {email}",
       "minutesAgo": "{count} хв тому",
+      "everyMinutes": "Кожні {count} хв",
       "hoursAgo": "{count} год тому",
       "ungradedWorksCount": "Неоцінені роботи: {count}",
       "lastCheckedValue": "Остання перевірка: {value}",
@@ -481,10 +490,11 @@ class AppLocalizations {
       "english": "Английский",
       "ukrainian": "Украинский",
       "russian": "Русский",
-      "onlyTurnedInTitle": "Показывать только сданные работы",
-      "onlyTurnedInSubtitle": "Скрывать назначенные, но еще не сданные работы",
-      "autoCheckTitle": "Проверять автоматически каждые 30 минут",
+      "autoCheckTitle": "Проверять автоматически",
       "autoCheckSubtitle": "Обновляет счетчик в меню",
+      "refreshInterval": "Интервал проверки",
+      "refreshIntervalSubtitle":
+          "Как часто выполняются автоматические проверки",
       "notifyTitle": "Уведомлять о новых неоцененных работах",
       "notifySubtitle": "Только когда количество увеличивается",
       "sendTestNotification": "Отправить тестовое уведомление",
@@ -545,6 +555,7 @@ class AppLocalizations {
       "search": "Поиск",
       "searchHint": "Студент, класс, тема или задание",
       "submittedYears": "Годы сдачи",
+      "displayInfoFor": "Показывать информацию за",
       "currentYear": "Текущий год",
       "allYears": "Все годы",
       "apply": "Применить",
@@ -591,6 +602,7 @@ class AppLocalizations {
       "signedInAsName": "Вход выполнен: {name}",
       "signedInAsEmail": "Вход выполнен: {email}",
       "minutesAgo": "{count} мин назад",
+      "everyMinutes": "Каждые {count} мин",
       "hoursAgo": "{count} ч назад",
       "ungradedWorksCount": "Неоцененные работы: {count}",
       "lastCheckedValue": "Последняя проверка: {value}",

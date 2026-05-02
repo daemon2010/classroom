@@ -3,6 +3,9 @@
 ## Project Rules
 
 - Work in `/Users/karam/Documents/classroom`.
+- At the start of every session, read only `PROJECT_CONTEXT.md`, `TODO.md`, and `CHANGELOG.md`, then inspect only task-specific files.
+- Never reread the whole project unless the memory files are missing, architecture is unclear, a serious bug cannot be localized, or the user explicitly asks for a full review.
+- Develop incrementally: keep edits focused, avoid unrelated refactors, and prefer small changes to existing files.
 - Make minimal, reviewable changes.
 - Do not commit or push unless the user explicitly asks.
 - Do not read, print, or commit `assets/credentials.json` or `credentials.json`.
@@ -10,10 +13,11 @@
 
 ## Feature Completion Handoff Rule
 
-- After every feature/request is fully implemented and verification has been attempted, update the project Markdown handoff files before the final response.
+- After every feature/request is fully implemented and verification has been attempted, update the short memory files before the final response.
+- Update `PROJECT_CONTEXT.md` when systems or architecture changed.
+- Update `TODO.md` when task status or pending runtime checks changed.
+- Update `CHANGELOG.md` with a short note.
 - Treat documentation handoff as part of the definition of done, especially before ending a long turn that could be compacted or run out of tokens.
-- At minimum, update `MEMORY.md` with what changed, what remains pending, verification commands/results or gaps, and any runtime caveats.
-- When behavior, setup, architecture, dependencies, user workflow, or future-agent workflow changes, also update the relevant parts of `README.md`, `RUNBOOK.md`, `AGENTS.md`, and `SKILLS.md`.
 - Handoff notes must be enough for the next session to continue without rereading the whole conversation, but must never include credentials, tokens, client secrets, or credential file contents.
 
 ## Classroom Safety
@@ -51,6 +55,7 @@ flutter run -d macos
 ```
 
 Expected runtime behavior: app starts hidden in the menu bar, close hides the report window, tray Quit exits.
+On macOS, opening the report should show a Dock icon and hiding the report should remove it again.
 
 ## Current Architecture Notes
 
@@ -58,7 +63,7 @@ Expected runtime behavior: app starts hidden in the menu bar, close hides the re
 - `ReportController.refreshReport()` loads profile, active teacher classes, class rosters, teacher-owned assignments, and turned-in submissions.
 - `ReportService` must still key coursework by both class id and coursework id before matching submissions.
 - Submitted date should come from `TURNED_IN` state history when available and should drive default row ordering.
-- The main table should keep sortable columns and default to the current submitted year, with multi-year selection available.
+- The main table should keep sortable columns and default to the current submitted year. Settings should choose either current year or all years.
 - Compact desktop widths must not show Flutter overflow stripes. Prefer ellipsized dropdown text, shorter action labels, and regression widget tests.
 - Any live UI timer must be scoped to the widget lifecycle and cancelled in `dispose()`.
 - Teacher-facing UI uses in-repo localization for English, Ukrainian, and Russian. Default follows the operating system language; Settings can override it.
@@ -74,5 +79,7 @@ Expected runtime behavior: app starts hidden in the menu bar, close hides the re
 - `SettingsService` owns the automatic-check toggle and persisted lightweight state.
 - Automatic checks run every 30 minutes only when signed in and `autoCheckEnabled` is true.
 - Notifications are optional and routed through `NotificationService`.
-- Only background refreshes may trigger notifications, and only when the count increases beyond both the previous successful count and the last notified count.
+- Only background refreshes may trigger notifications, and only when the filtered visible count increases beyond both the previous successful filtered count and the last notified filtered count.
+- Notification counts should follow persisted report filters: remembered class and year display scope. Search text is not part of notification filtering.
+- Reset the filtered notification marker when class or year scope changes.
 - Failed refreshes must keep the previous count and surface a friendly stored error.

@@ -36,7 +36,7 @@ Check macOS build architectures:
 lipo -info build/macos/Build/Products/Release/classroom_ungraded_checker.app/Contents/MacOS/classroom_ungraded_checker
 ```
 
-The current main executable is universal (`x86_64 arm64`). A bundled `objective_c.framework` currently reports `arm64` only, so clean Intel distribution still needs follow-up or direct Intel Mac validation.
+The current macOS release app builds as `Перевірка Classroom.app`. The main executable was previously universal (`x86_64 arm64`), but re-check after native product-name/icon changes before distribution. A bundled `objective_c.framework` currently reports `arm64` only, so clean Intel distribution still needs follow-up or direct Intel Mac validation.
 
 ## Current Behavior
 
@@ -47,15 +47,19 @@ The current main executable is universal (`x86_64 arm64`). A bundled `objective_
 - The app can load class rosters with `courses.students.list(courseId)` to show student names and emails.
 - The app can load course topics with `courses.topics.list(courseId)`.
 - The app can load assignment coursework with `courses.courseWork.list(courseId)` and keeps only items where `creatorUserId == myProfile.id` and `workType == "ASSIGNMENT"`.
+- When Settings is set to current year, the app only requests submissions for teacher-owned assignments whose creation, update, or due date is in the current year.
 - The app can load turned-in submissions with `courses.courseWork.studentSubmissions.list(courseId, courseWorkId, states: ["TURNED_IN"])`.
 - Submitted date is taken from the latest `TURNED_IN` state history timestamp when available, with submission update time as a fallback.
 - Report rows include only turned-in submissions for teacher-owned assignments where no assigned or draft grade is present.
 - Report rows are sorted newest submitted first by default.
 - The main table columns are sortable.
-- The main view filters to the current submitted year by default. Use the "Year" button to select multiple years or all years.
+- The main view filters to the current submitted year by default. Settings can switch display/retrieval scope between current year and all years.
 - The main status area shows a live `Now` clock and refreshes the last-checked age every second while the report window is open.
-- Interface language supports English, Ukrainian, and Russian through `lib/l10n/`. The default setting follows the operating system language, and Settings includes a manual language selector.
+- Interface language supports Ukrainian, English, and Russian through `lib/l10n/`. Ukrainian is the default setting. Settings includes a manual selector, plus "System language" for following the operating system when supported.
 - The main window, settings, diagnostics, tray/menu text, and notification text use the selected interface language where practical. Service-level error strings may still be English.
+- Runtime window/tray titles and notification app name use teacher-friendly localized names. Native macOS/Windows metadata uses teacher-friendly names instead of `classroom_ungraded_checker`.
+- The macOS release product name is `Перевірка Classroom.app`, which is the name the Dock tooltip should use.
+- The macOS Dock icon and Windows taskbar icon use the same transparent artwork as the normal tray icon.
 - Compact window layouts shorten action labels and expand dropdown text safely to avoid Flutter overflow stripes.
 - The earlier `0` result was expected before this read path existed because `listStudentSubmissions()` returned an empty list.
 - The class dropdown includes "All classes" plus the active classes returned by Google Classroom.
@@ -64,15 +68,18 @@ The current main executable is universal (`x86_64 arm64`). A bundled `objective_
 - If already signed in, startup first restores the last successful report from `ReportCacheService`.
 - The report cache is stored in the app support directory as `cache.json` and includes profile, classes, report rows, and checked time. It does not store Google credentials.
 - If automatic checking is enabled, startup only runs an immediate background refresh when the cache is missing or older than the configured interval.
-- The "Check automatically every 30 minutes" setting defaults to on. Turning it off stops startup/background refresh, but manual checks still work.
+- The "Check automatically" setting defaults to on, and the check interval defaults to 30 minutes. Settings lets the teacher choose 5, 10, 15, 30, or 60 minutes. Turning automatic checks off stops startup/background refresh, but manual checks still work.
 - Background refreshes are guarded by `ReportController`, so multiple refreshes do not run in parallel.
 - Failed refreshes keep the previous successful count, store a friendly error, and set the tray tooltip to `Last check failed. Open app for details.`
 - Optional desktop notifications are off by default. macOS uses the native `UNUserNotificationCenter` bridge; Windows/Linux use `local_notifier`.
 - Settings includes "Send test notification" to request/check OS permission and verify notification delivery.
-- When notification setting is on, a background refresh notifies only if the new ungraded count is higher than the previous successful count.
-- The app does not notify repeatedly for the same count.
-- The app stores the last successful count, last notified count, last checked time, last selected class, turned-in filter, table column settings, and friendly error locally.
-- Settings include the turned-in-only filter, automatic check toggle, notification toggle, last-class memory, student email column, and late column.
+- When notification setting is on, a background refresh notifies only if the filtered visible count is higher than the previous successful filtered count.
+- Notification counts respect the remembered class filter and the year display scope. By default, notifications count only current-year submissions.
+- The app does not notify repeatedly for the same filter/count.
+- Changing class or year scope clears the filtered notification marker so a previous all-years count cannot suppress current-year notifications.
+- The app stores the automatic check interval, last successful total and filtered counts, last notified filtered count, last checked time, last selected class, year display scope, table column settings, and friendly error locally.
+- Settings include the year display scope, automatic check toggle, automatic check interval, notification toggle, last-class memory, student email column, and late column.
+- On macOS, opening the report switches the app to Dock-visible mode; hiding the report switches it back to menu-bar-only mode.
 - The tray tooltip shows sign-in required, last check failed, or `Ungraded works: X. Last checked: HH:mm`.
 - The tray attention icon is used only when the ungraded count is greater than zero.
 - The tray "Export CSV" action exports current loaded rows, refreshing first if no report has been loaded.
@@ -118,6 +125,7 @@ courseWork.creatorUserId == myProfile.id
 
 - Runtime validation against the user's real Classroom data after pressing "Check Now".
 - Runtime validation that a second launch restores cached report rows and avoids an immediate full Classroom scan when the cache is fresh.
+- Runtime validation that changing the automatic check interval reconfigures the next background refresh.
 - Exercise the tray export path with real submission rows.
 - Runtime validation of desktop notification delivery through Settings > Send test notification.
 - Resolve or validate the `objective_c.framework` `arm64`-only bundle caveat before claiming a clean universal macOS release.
@@ -129,3 +137,4 @@ courseWork.creatorUserId == myProfile.id
 - `flutter analyze` - passed.
 - `flutter test` - passed, including compact filter overflow and Ukrainian language regression tests.
 - `flutter build macos` - passed.
+- `git diff --check` - passed.

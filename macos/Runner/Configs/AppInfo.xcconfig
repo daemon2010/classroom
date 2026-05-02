@@ -5,7 +5,7 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = classroom_ungraded_checker
+PRODUCT_NAME = Перевірка Classroom
 
 // The application's bundle identifier
 PRODUCT_BUNDLE_IDENTIFIER = com.example.classroomUngradedChecker

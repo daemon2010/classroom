@@ -24,8 +24,6 @@ class _HomeScreenState extends State<HomeScreen> {
   late ReportController _controller;
   String? _selectedCourseId;
   String _searchQuery = "";
-  bool _onlyTurnedIn = true;
-  late Set<int> _selectedSubmittedYears;
   ReportSortColumn _sortColumn = ReportSortColumn.submitted;
   bool _sortAscending = false;
   DateTime _currentTime = DateTime.now();
@@ -37,8 +35,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _controller = widget.services.reportController;
     final settings = widget.services.settings.settings;
     _selectedCourseId = settings.lastSelectedCourseId;
-    _onlyTurnedIn = settings.onlyTurnedIn;
-    _selectedSubmittedYears = {DateTime.now().year};
     _controller.addListener(_handleControllerChanged);
     widget.services.settings.addListener(_handleSettingsChanged);
     _startClock();
@@ -72,9 +68,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final availableSubmittedYears = _availableSubmittedYears(
-      _controller.snapshot.rows,
-    );
     final filteredRows = _sortedRows(_filteredRows(_controller.snapshot.rows));
     final filteredSummary = _summaryFor(filteredRows);
     final isSignedIn = _controller.isSignedIn;
@@ -113,10 +106,7 @@ class _HomeScreenState extends State<HomeScreen> {
             CourseFilter(
               courses: _controller.courses,
               selectedCourseId: _selectedCourseId,
-              onlyTurnedIn: _onlyTurnedIn,
               searchQuery: _searchQuery,
-              availableSubmittedYears: availableSubmittedYears,
-              selectedSubmittedYears: _selectedSubmittedYears,
               onCourseChanged: (courseId) {
                 setState(() {
                   _selectedCourseId = courseId;
@@ -125,20 +115,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   widget.services.settings.setLastSelectedCourseId(courseId),
                 );
               },
-              onOnlyTurnedInChanged: (value) {
-                setState(() {
-                  _onlyTurnedIn = value;
-                });
-                unawaited(widget.services.settings.setOnlyTurnedIn(value));
-              },
               onSearchChanged: (value) {
                 setState(() {
                   _searchQuery = value;
-                });
-              },
-              onSubmittedYearsChanged: (years) {
-                setState(() {
-                  _selectedSubmittedYears = years;
                 });
               },
             ),
@@ -184,7 +163,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final settings = widget.services.settings.settings;
     setState(() {
-      _onlyTurnedIn = settings.onlyTurnedIn;
       if (!settings.rememberLastSelectedCourse) {
         _selectedCourseId = null;
       } else {
@@ -228,6 +206,8 @@ class _HomeScreenState extends State<HomeScreen> {
     List<UngradedSubmissionReportRow> rows,
   ) {
     final query = _searchQuery.trim().toLowerCase();
+    final settings = widget.services.settings.settings;
+    final currentYear = DateTime.now().year;
 
     return rows
         .where((row) {
@@ -235,15 +215,11 @@ class _HomeScreenState extends State<HomeScreen> {
             return false;
           }
 
-          if (_onlyTurnedIn &&
-              row.submissionState != SubmissionState.turnedIn) {
-            return false;
-          }
-
-          final submittedYear = _submittedDate(row)?.toLocal().year;
-          if (submittedYear == null ||
-              !_selectedSubmittedYears.contains(submittedYear)) {
-            return false;
+          if (!settings.displayAllYears) {
+            final submittedYear = _submittedDate(row)?.toLocal().year;
+            if (submittedYear != currentYear) {
+              return false;
+            }
           }
 
           if (query.isEmpty) {
@@ -366,16 +342,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   DateTime? _submittedDate(UngradedSubmissionReportRow row) {
     return row.submittedAt ?? row.updatedAt;
-  }
-
-  List<int> _availableSubmittedYears(List<UngradedSubmissionReportRow> rows) {
-    final years = {
-      DateTime.now().year,
-      for (final row in rows)
-        if (_submittedDate(row) != null) _submittedDate(row)!.toLocal().year,
-    }.toList();
-    years.sort((a, b) => b.compareTo(a));
-    return years;
   }
 
   void _handleSortChanged(ReportSortColumn column, bool ascending) {
