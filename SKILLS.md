@@ -23,6 +23,7 @@
 
 - Do not load the Desktop app connection file as a Flutter asset. It should be supplied at build time with `GOOGLE_CREDENTIALS_BASE64` and compiled into release binaries.
 - Use `tool/build_macos_with_credentials.sh` or `tool/build_windows_with_credentials.ps1` for distributable builds that need Google sign-in configured.
+- The Windows build helper should validate the Google Desktop app credentials file and clean before building so the release `.exe` cannot silently reuse a plain build without Google configuration.
 - Use `tool/run_macos_with_credentials.sh` for local macOS runs that need Google sign-in configured.
 - Keep packaged app archives in ignored `dist/` because they contain the compiled-in Google connection configuration.
 - Open Google sign-in in the system browser.

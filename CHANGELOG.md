@@ -4,6 +4,7 @@
 
 - Stopped bundling `assets/credentials.json` as a loose Flutter asset; Google Desktop app credentials are now supplied through a build-time define so release binaries can contain the configuration directly.
 - Added a sign-in-capable macOS production build flow and packaged the release app as an ignored local ZIP under `dist/`.
+- Made the Windows credential build helper validate the Google Desktop app file, clean first, and pass credentials through direct `--dart-define` for a more reliable sign-in-capable `.exe`.
 - Limited Google sign-in to the currently approved Classroom scopes and stopped requesting profile/student email fields or topic names.
 - Changed the default interface language to Ukrainian and updated runtime/native app titles to teacher-friendly names.
 - Renamed the macOS release product to `Перевірка Classroom.app` so the Dock tooltip no longer shows `classroom_ungraded_checker`.

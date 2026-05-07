@@ -13,6 +13,7 @@ Implemented:
 - Desktop Google sign-in in the system browser.
 - Google sign-in now requests only the approved Classroom scopes: courses readonly, coursework students, and rosters readonly.
 - Google Desktop app credentials are no longer included in `pubspec.yaml` assets. Builds/runs pass `GOOGLE_CREDENTIALS_BASE64` at compile time, usually through `tool/build_macos_with_credentials.sh`, `tool/build_windows_with_credentials.ps1`, or `tool/run_macos_with_credentials.sh`, so the configuration is compiled into the app binary instead of copied as a loose asset.
+- The Windows build helper validates that `assets\credentials.json` is a Google OAuth Desktop app connection file, runs `flutter clean`, and calls `flutter build windows --dart-define ...` so stale/plain Windows builds are less likely to miss the embedded Google configuration.
 - A local sign-in-capable macOS production build was packaged at `dist/Перевірка Classroom-macos-universal.zip`. `dist/` is ignored because the app contains the compiled-in Google connection configuration.
 - Local sign-in restore with `shared_preferences`.
 - macOS network entitlements for Google sign-in.
@@ -85,6 +86,7 @@ Still pending:
 - Runtime validation that the packaged build made with `tool/build_macos_with_credentials.sh` signs in.
 - Add Developer ID signing and notarization before broad macOS distribution.
 - Windows tray build/runtime verification.
+- Runtime validation of the updated Windows build helper on a Windows machine; launch `build\windows\x64\runner\Release\classroom_ungraded_checker.exe` after running the script.
 
 ## Important Constraints
 

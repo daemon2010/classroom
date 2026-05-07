@@ -11,5 +11,6 @@
 - Validate CSV export with real rows.
 - Add Developer ID signing and notarization before broad macOS distribution.
 - Verify Windows tray behavior later.
+- Runtime-check updated Windows build helper on Windows; sign-in should be configured after running `powershell -ExecutionPolicy Bypass -File tool\build_windows_with_credentials.ps1`.
 
 Current working tree note: uncommitted feature changes exist for year-scope filtering, Dock visibility, removal of turned-in UI filter, and related docs/tests.

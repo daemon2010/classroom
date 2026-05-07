@@ -78,6 +78,12 @@ On Windows, build with:
 powershell -ExecutionPolicy Bypass -File tool\build_windows_with_credentials.ps1
 ```
 
+Then launch the built executable from:
+
+```text
+build\windows\x64\runner\Release\classroom_ungraded_checker.exe
+```
+
 For a local macOS debug run with sign-in configured:
 
 ```bash

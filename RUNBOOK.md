@@ -31,6 +31,14 @@ Build Windows the same way from PowerShell:
 powershell -ExecutionPolicy Bypass -File tool\build_windows_with_credentials.ps1
 ```
 
+If Windows shows sign-in as not configured, the app was almost certainly built without the define file or an older plain build was launched. Confirm `assets\credentials.json` exists on the Windows machine, run the PowerShell script from the repo root, then launch:
+
+```powershell
+build\windows\x64\runner\Release\classroom_ungraded_checker.exe
+```
+
+The Windows script validates that the file is a Google OAuth Desktop app connection file, runs `flutter clean`, and builds with `--dart-define` so the Google connection value is compiled into the `.exe` without shipping it as a loose asset.
+
 Plain `flutter build macos` still compiles the app, but Google sign-in will be unavailable because the connection file is intentionally no longer copied as a loose Flutter asset.
 
 Create the local distributable ZIP:
