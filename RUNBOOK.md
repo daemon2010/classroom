@@ -17,14 +17,38 @@ flutter pub get
 dart format lib test
 flutter analyze
 flutter test
-flutter build macos
 ```
+
+Build macOS with the Google Desktop app connection file compiled into the app binary:
+
+```bash
+zsh tool/build_macos_with_credentials.sh
+```
+
+Build Windows the same way from PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tool\build_windows_with_credentials.ps1
+```
+
+Plain `flutter build macos` still compiles the app, but Google sign-in will be unavailable because the connection file is intentionally no longer copied as a loose Flutter asset.
+
+Create the local distributable ZIP:
+
+```bash
+mkdir -p dist
+ditto -c -k --keepParent "build/macos/Build/Products/Release/Перевірка Classroom.app" "dist/Перевірка Classroom-macos-universal.zip"
+```
+
+`dist/` is ignored because the packaged app contains the compiled-in Google connection configuration. Current local builds are ad-hoc signed; use Developer ID signing and notarization before broad macOS distribution.
 
 Run on macOS:
 
 ```bash
-flutter run -d macos
+zsh tool/run_macos_with_credentials.sh
 ```
+
+Plain `flutter run -d macos` starts the app without embedded Google configuration and will show sign-in as unavailable.
 
 The app hides the main window on startup and appears in the macOS menu bar. Use the menu bar icon to open the report window.
 
@@ -36,16 +60,21 @@ Check macOS build architectures:
 lipo -info build/macos/Build/Products/Release/classroom_ungraded_checker.app/Contents/MacOS/classroom_ungraded_checker
 ```
 
-The current macOS release app builds as `Перевірка Classroom.app`. The main executable was previously universal (`x86_64 arm64`), but re-check after native product-name/icon changes before distribution. A bundled `objective_c.framework` currently reports `arm64` only, so clean Intel distribution still needs follow-up or direct Intel Mac validation.
+The current macOS release app builds as `Перевірка Classroom.app`. The main executable and bundled `objective_c.framework` were last checked as universal (`x86_64 arm64`).
 
 ## Current Behavior
 
 - Google browser sign-in is implemented for desktop.
 - Saved sign-in access is restored locally on startup.
+- Google Desktop app credentials are supplied through the `GOOGLE_CREDENTIALS_BASE64` build define and compiled into release binaries. `assets/credentials.json` remains local and ignored by git.
+- Google sign-in currently requests only:
+  - `https://www.googleapis.com/auth/classroom.courses.readonly`
+  - `https://www.googleapis.com/auth/classroom.coursework.students`
+  - `https://www.googleapis.com/auth/classroom.rosters.readonly`
 - The app can load the signed-in teacher profile with `userProfiles.get("me")`.
 - The app can load active teacher classes with `courses.list(teacherId: "me", courseStates: ["ACTIVE"])`.
-- The app can load class rosters with `courses.students.list(courseId)` to show student names and emails.
-- The app can load course topics with `courses.topics.list(courseId)`.
+- The app can load class rosters with `courses.students.list(courseId)` to show student names.
+- The app does not request profile email or topics permissions, so teacher/student email fields are not requested and subject/topic names are left blank.
 - The app can load assignment coursework with `courses.courseWork.list(courseId)` and keeps only items where `creatorUserId == myProfile.id` and `workType == "ASSIGNMENT"`.
 - When Settings is set to current year, the app only requests submissions for teacher-owned assignments whose creation, update, or due date is in the current year.
 - The app can load turned-in submissions with `courses.courseWork.studentSubmissions.list(courseId, courseWorkId, states: ["TURNED_IN"])`.
@@ -78,7 +107,7 @@ The current macOS release app builds as `Перевірка Classroom.app`. The 
 - The app does not notify repeatedly for the same filter/count.
 - Changing class or year scope clears the filtered notification marker so a previous all-years count cannot suppress current-year notifications.
 - The app stores the automatic check interval, last successful total and filtered counts, last notified filtered count, last checked time, last selected class, year display scope, table column settings, and friendly error locally.
-- Settings include the year display scope, automatic check toggle, automatic check interval, notification toggle, last-class memory, student email column, and late column.
+- Settings include the year display scope, automatic check toggle, automatic check interval, notification toggle, last-class memory, student email column, and late column. The student email column defaults to off because the app no longer requests email fields.
 - On macOS, opening the report switches the app to Dock-visible mode; hiding the report switches it back to menu-bar-only mode.
 - The tray tooltip shows sign-in required, last check failed, or `Ungraded works: X. Last checked: HH:mm`.
 - The tray attention icon is used only when the ungraded count is greater than zero.
@@ -128,7 +157,7 @@ courseWork.creatorUserId == myProfile.id
 - Runtime validation that changing the automatic check interval reconfigures the next background refresh.
 - Exercise the tray export path with real submission rows.
 - Runtime validation of desktop notification delivery through Settings > Send test notification.
-- Resolve or validate the `objective_c.framework` `arm64`-only bundle caveat before claiming a clean universal macOS release.
+- Add Developer ID signing and notarization for broad macOS distribution.
 - Add Windows tray verification from the same codebase.
 
 ## Latest Verification
@@ -136,5 +165,11 @@ courseWork.creatorUserId == myProfile.id
 - `dart format lib test` - passed.
 - `flutter analyze` - passed.
 - `flutter test` - passed, including compact filter overflow and Ukrainian language regression tests.
-- `flutter build macos` - passed.
+- `zsh tool/build_macos_with_credentials.sh` - passed and built `build/macos/Build/Products/Release/Перевірка Classroom.app`.
+- Packaged `dist/Перевірка Classroom-macos-universal.zip` - created, 22M.
+- App executable lipo check - `x86_64 arm64`.
+- `objective_c.framework` lipo check - `x86_64 arm64`.
+- Built app contents and ZIP listing were checked for loose `credentials.json`, `token.json`, and `cache.json`; none found.
+- `codesign -dv` shows the local app is ad-hoc signed, not Developer ID signed.
+- `zsh -n tool/build_macos_with_credentials.sh` - passed.
 - `git diff --check` - passed.

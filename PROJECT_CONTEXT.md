@@ -5,6 +5,10 @@
 - App starts hidden in menu bar/tray. Report window is compact desktop UI.
 - `ReportController` owns shared report state for tray and main window.
 - `ClassroomApiService` is read-only. Do not add create, patch, delete, return, grade, or submission-modifying calls.
+- Google sign-in currently requests only the approved Classroom scopes: courses readonly, coursework students, and rosters readonly.
+- Google Desktop app credentials are no longer loaded as a Flutter asset. Release builds should pass `GOOGLE_CREDENTIALS_BASE64` at compile time, usually through `tool/build_macos_with_credentials.sh` or `tool/build_windows_with_credentials.ps1`, so the credentials are compiled into the app binary and not copied as a loose asset.
+- Local distributable archives are written to ignored `dist/` because packaged builds contain the compiled-in Google connection configuration.
+- The app no longer requests profile email or topics permissions. Teacher and student email fields are not requested; assignment subject/topic names are left blank unless a future approved scope restores them.
 - Core Classroom rule: include only coursework where `courseWork.creatorUserId == myProfile.id`.
 - Report rows currently come from turned-in submissions with no assigned or draft grade.
 - `ReportCacheService` stores last successful profile/classes/rows in local app support `cache.json`; never store Google credentials there.

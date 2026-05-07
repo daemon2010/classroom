@@ -345,7 +345,6 @@ class ReportController extends ChangeNotifier {
     return GoogleAuthStatus(
       state: GoogleAuthState.signedIn,
       profileId: profile.id,
-      emailAddress: profile.emailAddress,
       displayName: profile.fullName,
       message: "Connected to Google Classroom.",
     );

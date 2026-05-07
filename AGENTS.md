@@ -3,13 +3,14 @@
 ## Project Rules
 
 - Work in `/Users/karam/Documents/classroom`.
-- At the start of every session, read only `PROJECT_CONTEXT.md`, `TODO.md`, and `CHANGELOG.md`, then inspect only task-specific files.
+- At the start of every session, read only `PROJECT_CONTEXT.md`, `TODO.md`, `CHANGELOG.md`, `README.md`, `RUNBOOK.md`, and `MEMORY.md`, then inspect only task-specific files.
 - Never reread the whole project unless the memory files are missing, architecture is unclear, a serious bug cannot be localized, or the user explicitly asks for a full review.
 - Develop incrementally: keep edits focused, avoid unrelated refactors, and prefer small changes to existing files.
 - Make minimal, reviewable changes.
 - Do not commit or push unless the user explicitly asks.
 - Do not read, print, or commit `assets/credentials.json` or `credentials.json`.
-- Keep `.gitignore` protections for credentials, local state, and `build/`.
+- Do not add `assets/credentials.json` back to Flutter assets. Release builds must inject it with `GOOGLE_CREDENTIALS_BASE64` so it is compiled into the binary.
+- Keep `.gitignore` protections for credentials, local state, `build/`, and `dist/`.
 
 ## Feature Completion Handoff Rule
 
@@ -23,11 +24,12 @@
 ## Classroom Safety
 
 - This app must stay logically read-only.
+- Google sign-in currently requests only the approved scopes for courses, coursework, and rosters. Do not re-add profile email or topics permissions unless the Google consent screen is approved for them.
 - Allowed Classroom calls currently implemented:
   - `userProfiles.get("me")`
   - `courses.list(teacherId: "me")`
   - `courses.students.list(courseId)`
-  - `courses.topics.list(courseId)`
+  - `courses.topics.list(courseId)` exists but should not be called by the report path without an approved topics permission.
   - `courses.courseWork.list(courseId)`
   - `courses.courseWork.studentSubmissions.list(courseId, courseWorkId)`
 - Do not wire create, patch, delete, return, grade, or submission-modifying calls.
@@ -48,6 +50,9 @@ flutter test
 flutter build macos
 ```
 
+For distributable macOS builds with Google sign-in configured, use `zsh tool/build_macos_with_credentials.sh`. Plain `flutter build macos` is still useful for compile verification but intentionally does not embed the local Google connection file.
+When packaging a local ZIP under `dist/`, keep it untracked because it contains the compiled-in Google connection configuration.
+
 For macOS runtime checks:
 
 ```bash
@@ -60,7 +65,7 @@ On macOS, opening the report should show a Dock icon and hiding the report shoul
 ## Current Architecture Notes
 
 - `ReportController` owns shared report state for the tray and main window.
-- `ReportController.refreshReport()` loads profile, active teacher classes, class rosters, teacher-owned assignments, and turned-in submissions.
+- `ReportController.refreshReport()` loads profile, active teacher classes, class rosters, teacher-owned assignments, and turned-in submissions without requesting email fields or topic names.
 - `ReportService` must still key coursework by both class id and coursework id before matching submissions.
 - Submitted date should come from `TURNED_IN` state history when available and should drive default row ordering.
 - The main table should keep sortable columns and default to the current submitted year. Settings should choose either current year or all years.

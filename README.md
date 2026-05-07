@@ -7,7 +7,7 @@ A Flutter desktop tray/menu bar app for checking ungraded Google Classroom submi
 - macOS and Windows desktop project files are generated.
 - macOS is configured as a menu bar accessory app with the main window hidden by default.
 - Opening the report on macOS makes the app appear in the Dock; hiding the report returns it to menu-bar-only mode.
-- The current macOS release executable builds as universal `x86_64` and `arm64`; one bundled `objective_c.framework` is currently `arm64` only and should be resolved or Intel-tested before distribution.
+- The current macOS release app builds as universal `x86_64` and `arm64`.
 - Tray/menu actions open the report, run checks, export CSV, sign in, open settings, and quit through shared app state.
 - If already signed in, the app restores the last successful report from a local cache on startup.
 - If automatic checking is enabled, startup only scans Classroom immediately when the cache is missing or older than the configured check interval; otherwise the next periodic check handles refresh.
@@ -15,17 +15,20 @@ A Flutter desktop tray/menu bar app for checking ungraded Google Classroom submi
 - macOS notifications use a native notification bridge and Settings includes a test notification action.
 - Google browser sign-in is implemented for desktop.
 - Signed-in access is restored locally on app startup.
-- Google Classroom profile, active teacher course, roster, topic, teacher-owned assignment, and turned-in student submission reads are implemented.
+- Google sign-in is limited to the currently approved Classroom permissions: classes, coursework, and rosters.
+- Google Classroom profile, active teacher course, roster, teacher-owned assignment, and turned-in student submission reads are implemented.
+- Teacher/student email fields and topic names are not requested in the current permission set.
 - Report rows are built from turned-in submissions with no assigned or draft grade.
 - Report rows sort by submitted date by default, table columns are sortable, and Settings controls whether the app displays current-year work or all years.
 - The main status area includes a live `Now` clock and updates last-checked age while the window is open.
 - Interface localization supports Ukrainian, English, and Russian. Ukrainian is the default, Settings can override the interface language, and the "System language" option follows the operating system when supported.
 - Runtime window/tray titles and notification app name use teacher-friendly localized names, while native app metadata avoids `classroom_ungraded_checker`.
 - The macOS Dock icon and Windows taskbar icon use the same transparent artwork as the normal tray icon.
+- Google Desktop app credentials are supplied at build time and compiled into release binaries; `assets/credentials.json` is not bundled as a loose Flutter asset.
 - Classroom write operations are not implemented and must stay unwired.
 - CSV export saves UTF-8 CSV through a desktop save dialog with `classroom-ungraded-report.csv` as the default filename.
 - The app stores the automatic check interval, last successful total and filtered counts, last notified filtered count, last checked time, last selected class, year display scope, and table column settings locally.
-- The app also stores a local report cache in the app support directory. It contains report data such as student names/emails and links, but no Google credentials.
+- The app also stores a local report cache in the app support directory. It contains report data such as student names and links, but no Google credentials.
 
 ## Core report rule
 
@@ -47,13 +50,38 @@ assets/credentials.json
 
 That file is ignored by git.
 
-Run:
+Run local checks:
 
 ```bash
 flutter pub get
 flutter analyze
 flutter test
-flutter build macos
+```
+
+Build macOS with the Google connection file compiled into the app:
+
+```bash
+zsh tool/build_macos_with_credentials.sh
+```
+
+Create a distributable ZIP after building:
+
+```bash
+ditto -c -k --keepParent "build/macos/Build/Products/Release/Перевірка Classroom.app" "dist/Перевірка Classroom-macos-universal.zip"
+```
+
+`dist/` is ignored because packaged builds contain the compiled-in Google connection configuration. This local build is ad-hoc signed; public distribution should use Developer ID signing and notarization.
+
+On Windows, build with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tool\build_windows_with_credentials.ps1
+```
+
+For a local macOS debug run with sign-in configured:
+
+```bash
+zsh tool/run_macos_with_credentials.sh
 ```
 
 ## Handoff discipline

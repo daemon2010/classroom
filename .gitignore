@@ -11,6 +11,7 @@ cache.json
 .flutter-plugins-dependencies
 .packages
 build/
+dist/
 
 # IDE and OS files
 .idea/

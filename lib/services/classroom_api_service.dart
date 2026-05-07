@@ -25,7 +25,7 @@ class ClassroomApiService {
     try {
       final profile = await api.userProfiles.get(
         "me",
-        $fields: "id,emailAddress,name/fullName,photoUrl",
+        $fields: "id,name/fullName,photoUrl",
       );
       final profileId = profile.id?.trim();
       if (profileId == null || profileId.isEmpty) {
@@ -37,7 +37,6 @@ class ClassroomApiService {
       return ClassroomProfile(
         id: profileId,
         fullName: profile.name?.fullName ?? "",
-        emailAddress: profile.emailAddress ?? "",
         photoUrl: profile.photoUrl,
       );
     } on ClassroomReadException {
@@ -162,8 +161,6 @@ class ClassroomApiService {
     int? assignmentYear,
   }) async {
     final api = await _classroomApi();
-    final topics = await listCourseTopics(courseId);
-    final topicNamesById = {for (final topic in topics) topic.id: topic.name};
     final assignments = <ClassroomAssignment>[];
     String? pageToken;
 
@@ -211,7 +208,7 @@ class ClassroomApiService {
             dueDate: _parseDate(work.dueDate),
             dueTime: _parseTimeOfDay(work.dueTime),
             topicId: topicId?.isEmpty ?? true ? null : topicId,
-            subjectName: topicId == null ? "" : topicNamesById[topicId] ?? "",
+            subjectName: "",
             creatorUserId: creatorUserId,
             workType: "ASSIGNMENT",
             maxPoints: work.maxPoints,
@@ -262,7 +259,7 @@ class ClassroomApiService {
           pageSize: 100,
           pageToken: pageToken,
           $fields:
-              "students(userId,profile(id,emailAddress,name/fullName,photoUrl)),nextPageToken",
+              "students(userId,profile(id,name/fullName,photoUrl)),nextPageToken",
         );
 
         for (final student
@@ -274,12 +271,10 @@ class ClassroomApiService {
           }
 
           final name = profile?.name?.fullName?.trim();
-          final email = profile?.emailAddress?.trim();
           students.add(
             ClassroomStudent(
               id: id,
-              fullName: _studentNameFromProfile(name: name, email: email),
-              emailAddress: email?.isEmpty ?? true ? null : email,
+              fullName: _studentNameFromProfile(name: name),
               photoUrl: profile?.photoUrl,
             ),
           );
@@ -488,16 +483,9 @@ class ClassroomApiService {
     return "Unknown student";
   }
 
-  String _studentNameFromProfile({
-    required String? name,
-    required String? email,
-  }) {
+  String _studentNameFromProfile({required String? name}) {
     if (name != null && name.isNotEmpty) {
       return name;
-    }
-
-    if (email != null && email.isNotEmpty) {
-      return email;
     }
 
     return "Unknown student";

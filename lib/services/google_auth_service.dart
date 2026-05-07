@@ -2,9 +2,9 @@ import "dart:async";
 import "dart:convert";
 import "dart:io";
 import "dart:math";
+import "dart:typed_data";
 
 import "package:crypto/crypto.dart";
-import "package:flutter/services.dart";
 import "package:googleapis/classroom/v1.dart" as classroom;
 import "package:googleapis_auth/auth_io.dart" as auth;
 import "package:http/http.dart" as http;
@@ -73,11 +73,11 @@ class GoogleAuthService {
     classroom.ClassroomApi.classroomCoursesReadonlyScope,
     classroom.ClassroomApi.classroomCourseworkStudentsScope,
     classroom.ClassroomApi.classroomRostersReadonlyScope,
-    classroom.ClassroomApi.classroomProfileEmailsScope,
-    classroom.ClassroomApi.classroomTopicsReadonlyScope,
   ];
 
-  static const _credentialsAssetPath = "assets/credentials.json";
+  static const _embeddedCredentialsBase64 = String.fromEnvironment(
+    "GOOGLE_CREDENTIALS_BASE64",
+  );
   static const _savedCredentialsKey = "googleSignInCredentials";
   static const _savedProfileNameKey = "googleSignInProfileName";
   static const _savedProfileEmailKey = "googleSignInProfileEmail";
@@ -207,24 +207,21 @@ class GoogleAuthService {
     try {
       final profile = await classroom.ClassroomApi(
         client,
-      ).userProfiles.get("me", $fields: "id,emailAddress,name/fullName");
+      ).userProfiles.get("me", $fields: "id,name/fullName");
       await _saveProfile(profile);
 
       return GoogleAuthStatus(
         state: GoogleAuthState.signedIn,
         profileId: profile.id,
-        emailAddress: profile.emailAddress,
         displayName: profile.name?.fullName,
         message: "Connected to Google Classroom.",
       );
     } catch (_) {
       final preferences = await SharedPreferences.getInstance();
       final cachedName = preferences.getString(_savedProfileNameKey);
-      final cachedEmail = preferences.getString(_savedProfileEmailKey);
 
       return GoogleAuthStatus(
         state: GoogleAuthState.signedIn,
-        emailAddress: cachedEmail,
         displayName: cachedName,
         message: "Connected. Profile details will update after the next check.",
       );
@@ -234,8 +231,14 @@ class GoogleAuthService {
   Future<_GoogleClientConfig> _loadClientConfig() async {
     Map<String, dynamic> decoded;
     try {
+      if (_embeddedCredentialsBase64.trim().isEmpty) {
+        throw const FormatException("Missing embedded Google sign-in config.");
+      }
+
       decoded =
-          jsonDecode(await rootBundle.loadString(_credentialsAssetPath))
+          jsonDecode(
+                utf8.decode(base64Decode(_embeddedCredentialsBase64.trim())),
+              )
               as Map<String, dynamic>;
     } catch (_) {
       throw const GoogleAuthException(
@@ -459,7 +462,7 @@ class GoogleAuthService {
     try {
       final profile = await classroom.ClassroomApi(
         client,
-      ).userProfiles.get("me", $fields: "emailAddress,name/fullName");
+      ).userProfiles.get("me", $fields: "name/fullName");
       await _saveProfile(profile);
     } catch (_) {
       return;
@@ -469,14 +472,11 @@ class GoogleAuthService {
   Future<void> _saveProfile(classroom.UserProfile profile) async {
     final preferences = await SharedPreferences.getInstance();
     final fullName = profile.name?.fullName;
-    final emailAddress = profile.emailAddress;
 
     if (fullName != null && fullName.isNotEmpty) {
       await preferences.setString(_savedProfileNameKey, fullName);
     }
-    if (emailAddress != null && emailAddress.isNotEmpty) {
-      await preferences.setString(_savedProfileEmailKey, emailAddress);
-    }
+    await preferences.remove(_savedProfileEmailKey);
   }
 
   String _createCodeVerifier() {

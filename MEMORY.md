@@ -7,17 +7,20 @@ This repo contains a Flutter desktop app named `classroom_ungraded_checker`.
 Implemented:
 
 - macOS menu bar and Windows-ready tray shell using `tray_manager`.
-- Current macOS release executable is universal `x86_64 arm64`; bundled `objective_c.framework` reports `arm64` only and needs follow-up before a clean universal release claim.
+- Current macOS release executable and bundled `objective_c.framework` were last checked as universal `x86_64 arm64`.
 - Window lifecycle using `window_manager`; startup hides the main window and close hides instead of quitting.
 - On macOS, opening the report switches the app into Dock-visible mode; hiding the report returns it to menu-bar-only mode.
 - Desktop Google sign-in in the system browser.
+- Google sign-in now requests only the approved Classroom scopes: courses readonly, coursework students, and rosters readonly.
+- Google Desktop app credentials are no longer included in `pubspec.yaml` assets. Builds/runs pass `GOOGLE_CREDENTIALS_BASE64` at compile time, usually through `tool/build_macos_with_credentials.sh`, `tool/build_windows_with_credentials.ps1`, or `tool/run_macos_with_credentials.sh`, so the configuration is compiled into the app binary instead of copied as a loose asset.
+- A local sign-in-capable macOS production build was packaged at `dist/Перевірка Classroom-macos-universal.zip`. `dist/` is ignored because the app contains the compiled-in Google connection configuration.
 - Local sign-in restore with `shared_preferences`.
 - macOS network entitlements for Google sign-in.
 - Compact main window UI with status, actions, class filter, summaries, and report table.
 - Teacher profile read with `classroom.userProfiles.get("me")`.
 - Active teacher class read with paginated `classroom.courses.list(teacherId: "me")`.
 - Class roster read with paginated `classroom.courses.students.list(courseId)`.
-- Course topic read with paginated `classroom.courses.topics.list(courseId)`.
+- Course topic read remains implemented but is no longer called by the report path because the app no longer requests the topics permission.
 - Teacher-owned assignment read with paginated `classroom.courses.courseWork.list(courseId)`.
 - When Settings is set to current year, the refresh path only requests submissions for teacher-owned assignments whose creation, update, or due date falls in the current year.
 - Assignment filtering by `creatorUserId == myProfile.id` and `workType == "ASSIGNMENT"`.
@@ -32,7 +35,7 @@ Implemented:
 - Runtime window/tray titles and notification app name use teacher-friendly localized names. Native macOS/Windows metadata uses teacher-friendly names instead of `classroom_ungraded_checker`.
 - The macOS release product name is `Перевірка Classroom.app`, which is the name the Dock tooltip should use.
 - The macOS Dock icon and Windows taskbar icon use the same transparent artwork as the normal tray icon.
-- Student names/emails are resolved from class rosters.
+- Student names are resolved from class rosters. Email fields are no longer requested, and the student email column defaults to off.
 - The report builder keys coursework by class and work id so matching cannot cross between classes.
 - Status/filter/action layout was tightened to avoid the debug overflow stripe seen in compact windows.
 - Class dropdowns now use expanded/ellipsized selected text, and compact action buttons use shorter labels below narrow widths.
@@ -51,7 +54,7 @@ Implemented:
 - Changing class or year scope resets the filtered notification marker so counts from another filter cannot suppress a new alert.
 - Settings includes "Send test notification" to request/check macOS notification permission and verify delivery without waiting for a new Classroom count.
 - Local state persists the automatic check interval, last successful total and filtered counts, last notified filtered count, last checked time, last selected class, year display scope, table column settings, and last friendly error.
-- The report cache contains local Classroom report data such as student names/emails and assignment links, but no Google credentials or sign-in secrets.
+- The report cache contains local Classroom report data such as student names and assignment links, but no Google credentials or sign-in secrets.
 - Tray export uses the currently loaded rows and refreshes first if no report has been loaded.
 - CSV export writes UTF-8 CSV through the desktop save dialog using the default filename `classroom-ungraded-report.csv`.
 - CSV rows include student, class, subject, assignment, state, late flag, timestamps, points, and links.
@@ -61,7 +64,13 @@ Last verification:
 - `dart format lib test` - passed.
 - `flutter analyze` - passed.
 - `flutter test` - passed, including compact layout and Ukrainian language regression coverage.
-- `flutter build macos` - passed.
+- `zsh tool/build_macos_with_credentials.sh` - passed and built `build/macos/Build/Products/Release/Перевірка Classroom.app`.
+- Packaged `dist/Перевірка Classroom-macos-universal.zip` - created, 22M.
+- App executable lipo check - `x86_64 arm64`.
+- `objective_c.framework` lipo check - `x86_64 arm64`.
+- Built app contents and ZIP listing were checked for loose `credentials.json`, `token.json`, and `cache.json`; none found.
+- `codesign -dv` shows ad-hoc signing, not Developer ID signing.
+- `zsh -n tool/build_macos_with_credentials.sh` - passed.
 - Built macOS `Info.plist` was checked: `CFBundleDisplayName` is `Перевірка Classroom`, `CFBundleExecutable` is `Перевірка Classroom`, `CFBundleName` is `Classroom Ungraded Checker`, and `AppIcon.icns` is present.
 - `git diff --check` - passed.
 
@@ -73,14 +82,18 @@ Still pending:
 - Runtime validation that changing the automatic check interval reconfigures the next background refresh.
 - Runtime validation of notification banner delivery through Settings > Send test notification.
 - Runtime validation of Dock/taskbar title and transparent icon from a fresh installed build. If macOS still shows an old icon, clear the Dock icon cache or remove the old Dock item before re-adding the app.
-- Resolve or validate the bundled `objective_c.framework` `arm64`-only caveat for Intel Mac distribution.
+- Runtime validation that the packaged build made with `tool/build_macos_with_credentials.sh` signs in.
+- Add Developer ID signing and notarization before broad macOS distribution.
 - Windows tray build/runtime verification.
 
 ## Important Constraints
 
 - `assets/credentials.json`, `credentials.json`, local sign-in state, and build output must stay ignored.
+- `dist/` must stay ignored because packaged builds contain compiled-in Google connection configuration.
+- Do not re-add `assets/credentials.json` to Flutter assets. Use the build scripts or an equivalent `--dart-define=GOOGLE_CREDENTIALS_BASE64=...` release build.
 - Never log or display credentials or saved sign-in data.
 - The app requests `classroom.coursework.students`, but must not perform write operations.
+- The app intentionally does not request `classroom.profile.emails` or `classroom.topics.readonly`; do not re-add them unless the Google consent screen is approved for those scopes.
 - The report must only include assignments created by the authenticated teacher.
 - After each feature/request is fully implemented and verification has been attempted, update the Markdown handoff files before the final response so work can resume cleanly if context is compacted or tokens run out.
 - Handoff updates are part of the definition of done. Keep `MEMORY.md` current with implemented changes, pending work, verification commands/results or gaps, and runtime caveats.

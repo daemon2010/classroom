@@ -21,7 +21,10 @@
 
 ## Google Sign-In
 
-- Load the Desktop app connection file from `assets/credentials.json`.
+- Do not load the Desktop app connection file as a Flutter asset. It should be supplied at build time with `GOOGLE_CREDENTIALS_BASE64` and compiled into release binaries.
+- Use `tool/build_macos_with_credentials.sh` or `tool/build_windows_with_credentials.ps1` for distributable builds that need Google sign-in configured.
+- Use `tool/run_macos_with_credentials.sh` for local macOS runs that need Google sign-in configured.
+- Keep packaged app archives in ignored `dist/` because they contain the compiled-in Google connection configuration.
 - Open Google sign-in in the system browser.
 - Save and restore local sign-in access with `shared_preferences`.
 - Refresh access when possible.
@@ -30,15 +33,17 @@
 ## Classroom Reads
 
 - Use `GoogleAuthService.getAuthClient()` to obtain an authenticated client.
+- Keep Google sign-in limited to the approved Classroom scopes: courses readonly, coursework students, and rosters readonly.
 - Use `ClassroomApiService.getMyProfile()` for `userProfiles.get("me")`.
 - Use `ClassroomApiService.listTeacherCourses()` for paginated active class loading.
-- Use `ClassroomApiService.listCourseStudents(courseId)` once per class to resolve student names/emails.
-- Use `ClassroomApiService.listCourseTopics(courseId)` for topic names.
+- Use `ClassroomApiService.listCourseStudents(courseId)` once per class to resolve student names.
+- Do not call `ClassroomApiService.listCourseTopics(courseId)` from the report path unless the app is approved for the topics permission again.
 - Use `ClassroomApiService.listMyAssignments(courseId: ..., myUserId: ...)` for assignment coursework.
 - Use `ClassroomApiService.listStudentSubmissions(courseId: ..., courseWorkId: ..., studentsById: ...)` for paginated turned-in submission reads.
 - Use `TURNED_IN` state history timestamps as submitted dates when Google Classroom returns them.
 - Never bypass the `creatorUserId == myProfile.id` filter when loading assignments.
 - Keep write-capable scope usage logically read-only.
+- Do not request or display teacher/student email fields unless an approved email permission is intentionally restored.
 
 ## Report Logic
 

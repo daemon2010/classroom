@@ -1,8 +1,8 @@
 class ClassroomProfile {
   const ClassroomProfile({
     required this.id,
-    required this.emailAddress,
     required this.fullName,
+    this.emailAddress = "",
     this.photoUrl,
   });
 

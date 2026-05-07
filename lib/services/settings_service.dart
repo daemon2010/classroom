@@ -130,7 +130,7 @@ class SettingsService extends ChangeNotifier {
     autoCheckEnabled: true,
     notifyOnNewUngradedWorks: false,
     rememberLastSelectedCourse: true,
-    showStudentEmailColumn: true,
+    showStudentEmailColumn: false,
     showLateColumn: true,
     lastSuccessfulCount: 0,
     lastSuccessfulVisibleCount: 0,
